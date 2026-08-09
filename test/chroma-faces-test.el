@@ -1,0 +1,597 @@
+;;; chroma-faces-test.el --- Chroma face tests  -*- lexical-binding: t; -*-
+
+;;; Code:
+
+(require 'ert)
+(require 'chroma-faces)
+
+(defconst chroma-test--project-directory
+  (expand-file-name ".." (file-name-directory
+                           (or load-file-name buffer-file-name)))
+  "Chroma project directory used by theme-loading tests.")
+
+(require 'chroma-theme)
+
+(defun chroma-test--theme-attribute (face attribute)
+  "Return FACE's ATTRIBUTE stored for the Chroma theme."
+  (let* ((theme-entry (assq 'chroma (get face 'theme-face)))
+         (spec (cadr theme-entry))
+         (attributes (cadr (car spec))))
+    (plist-get attributes attribute)))
+
+(defun chroma-test--theme-foreground (face)
+  "Return FACE's foreground stored for the Chroma theme."
+  (chroma-test--theme-attribute face :foreground))
+
+(ert-deftest chroma-theme-registers-library-directory-for-discovery ()
+  "Loading the library makes Chroma discoverable by `load-theme'."
+  (let ((theme-directory
+         (file-name-as-directory chroma-test--project-directory)))
+    (should (member theme-directory custom-theme-load-path))
+    (should (memq 'chroma (custom-available-themes)))))
+
+(ert-deftest chroma-theme-applies-built-in-faces-defined-after-enable ()
+  "Built-in faces loaded after Chroma receive their recorded theme spec."
+  (let ((old-primary chroma-primary)
+        (old-variant chroma-variant)
+        (was-enabled (memq 'chroma custom-enabled-themes)))
+    (unwind-protect
+        (progn
+          (setq chroma-primary 'purple
+                chroma-variant 'light)
+          (enable-theme 'chroma)
+          (require 'org)
+          (should
+           (equal
+            (chroma-test--theme-foreground 'org-todo)
+            (chroma-palette-color 'purple 'status-error 'light))))
+      (setq chroma-primary old-primary
+            chroma-variant old-variant)
+      (chroma-theme-refresh)
+      (unless was-enabled
+        (disable-theme 'chroma)))))
+
+(ert-deftest chroma-theme-enable-resolves-post-load-setq ()
+  "Enabling Chroma rebuilds specs changed by a post-load `setq'."
+  (let ((old-primary chroma-primary)
+        (was-enabled (memq 'chroma custom-enabled-themes)))
+    (unwind-protect
+        (progn
+          (setq chroma-primary 'yellow)
+          (enable-theme 'chroma)
+          (should (equal
+                   (chroma-test--theme-foreground
+                    'font-lock-keyword-face)
+                   (chroma-palette-color 'yellow 'vivid))))
+      (setq chroma-primary old-primary)
+      (chroma-theme-refresh)
+      (unless was-enabled
+        (disable-theme 'chroma)))))
+
+(ert-deftest chroma-theme-switches-between-dark-and-light-palettes ()
+  "Changing `chroma-variant' replaces colors and theme metadata."
+  (let ((old-variant chroma-variant)
+        (was-enabled (memq 'chroma custom-enabled-themes)))
+    (unwind-protect
+        (progn
+          (unless was-enabled
+            (enable-theme 'chroma))
+          (dolist (variant chroma-supported-variants)
+            (setq chroma-variant variant)
+            (chroma-theme-refresh)
+            (should
+             (equal
+              (chroma-test--theme-attribute 'default :background)
+              (chroma-palette-color 'neutral 'bg-main variant)))
+            (should
+             (eq (plist-get (get 'chroma 'theme-properties)
+                            :background-mode)
+                 variant))))
+      (setq chroma-variant old-variant)
+      (chroma-theme-refresh)
+      (unless was-enabled
+        (disable-theme 'chroma)))))
+
+(ert-deftest chroma-faces-major-mappings-use-expected-roles ()
+  "Major built-in faces map to their intended semantic roles."
+  (dolist (expectation
+           '((default :foreground fg-main :background bg-main)
+             (cursor :background primary-emphasis)
+             (region :background selection)
+             (secondary-selection :background alternate-selection)
+             (highlight :background primary-refinement)
+             (shadow :foreground fg-muted)
+             (link :foreground link)
+             (link-visited :foreground visited-link)
+             (error :foreground error)
+             (warning :foreground warning)
+             (success :foreground success)
+             (font-lock-builtin-face :foreground primary-emphasis)
+             (font-lock-comment-face :foreground primary)
+             (font-lock-constant-face :foreground secondary-vivid)
+             (font-lock-function-name-face :foreground primary-emphasis)
+             (font-lock-keyword-face :foreground primary-vivid)
+             (font-lock-string-face :foreground secondary-emphasis)
+             (font-lock-type-face :foreground primary-vivid)
+             (font-lock-variable-name-face :foreground secondary-vivid)
+             (mode-line :foreground fg-on-bright
+                        :background bg-mode-line)
+             (mode-line-inactive :foreground fg-main
+                                 :background bg-panel)
+             (header-line :foreground fg-main :background bg-panel)
+             (hl-line :background primary-refinement)
+             (minibuffer-prompt :foreground primary-emphasis)
+             (match :background match)
+             (lazy-highlight
+              :background alternate-selection)
+             (isearch :foreground bg-main :background search)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation)))))
+
+(ert-deftest chroma-faces-hl-line-and-region-use-different-hues ()
+  "Current-line and region backgrounds use primary and secondary hues."
+  (dolist (variant chroma-supported-variants)
+    (let* ((colors
+            (chroma-resolve-semantic-colors 'blue 'orange variant))
+           (hl-line
+            (chroma--resolve-face-attributes
+             (chroma-face-mapping 'hl-line) colors))
+           (region
+            (chroma--resolve-face-attributes
+             (chroma-face-mapping 'region) colors))
+           (hl-line-background (plist-get hl-line :background))
+           (region-background (plist-get region :background)))
+      (should
+       (equal hl-line-background
+              (chroma-palette-color 'blue 'refinement variant)))
+      (should
+       (equal region-background
+              (chroma-palette-color 'orange 'selection variant)))
+      (should-not (equal hl-line-background region-background)))))
+
+(ert-deftest chroma-faces-search-states-remain-distinct ()
+  "Match, lazy search, and matching parens use distinct finite tones."
+  (let* ((colors (chroma-resolve-semantic-colors 'blue 'orange 'light))
+         (backgrounds
+          (mapcar
+           (lambda (face)
+             (plist-get
+              (chroma--resolve-face-attributes
+               (chroma-face-mapping face) colors)
+              :background))
+           '(match lazy-highlight show-paren-match))))
+    (should (= (length (delete-dups backgrounds)) 3)))
+  (should-not (chroma-face-mapping 'show-paren-match-expression)))
+
+(ert-deftest chroma-faces-source-distinct-levels-do-not-collapse ()
+  "Mappings retain audited distinctions between related source faces."
+  (should-not
+   (equal (chroma-face-mapping 'window-divider-first-pixel)
+          (chroma-face-mapping 'window-divider-last-pixel)))
+  (should-not
+   (equal (chroma-face-mapping 'smerge-lower)
+          (chroma-face-mapping 'smerge-refined-added)))
+  (should-not
+   (equal (chroma-face-mapping 'smerge-upper)
+          (chroma-face-mapping 'smerge-refined-removed)))
+  (should-not
+   (equal (chroma-face-mapping 'magit-dimmed)
+          (chroma-face-mapping 'magit-hash)))
+  (should
+   (equal (chroma-face-mapping 'magit-log-graph)
+          (chroma-face-mapping 'magit-log-date)))
+  (dolist (variant chroma-supported-variants)
+    (dolist (primary chroma-supported-hues)
+      (let* ((colors
+              (chroma-resolve-semantic-colors primary 'auto variant))
+             (base
+              (chroma--resolve-face-attributes
+               (chroma-face-mapping 'magit-diff-base) colors))
+             (highlight
+              (chroma--resolve-face-attributes
+               (chroma-face-mapping 'magit-diff-base-highlight)
+               colors)))
+        (should-not (equal base highlight))))))
+
+(ert-deftest chroma-faces-ansi-source-levels-remain-distinct ()
+  "ANSI colors sharing a selected hue retain standard brightness levels."
+  (dolist (family
+           '((ansi-color-blue ansi-color-bright-blue
+              ansi-color-red ansi-color-bright-red
+              ansi-color-cyan ansi-color-bright-cyan)
+             (ansi-color-magenta ansi-color-bright-magenta
+              ansi-color-green ansi-color-bright-green
+              ansi-color-yellow ansi-color-bright-yellow)))
+    (let ((mappings (mapcar #'chroma-face-mapping family)))
+      (should (= (length mappings)
+                 (length (delete-dups mappings)))))))
+
+(ert-deftest chroma-faces-external-packages-use-expected-roles ()
+  "External package roots map only their explicit default colors."
+  (should
+   (equal chroma-supported-external-packages
+          '(avy corfu diff-hl magit tempel transient vundo)))
+  (dolist
+      (expectation
+       '((corfu-current :foreground fg-main :background primary-muted)
+         (diff-hl-insert :foreground success-emphasis)
+         (diff-hl-delete :foreground error-emphasis)
+         (diff-hl-change :foreground warning-emphasis
+                         :background warning-muted)
+         (tempel-field :foreground fg-main
+                       :background primary-muted)
+         (tempel-form :foreground fg-main
+                      :background secondary-muted)
+         (avy-lead-face :foreground bg-main :background primary)
+         (avy-lead-face-2 :foreground bg-main :background secondary)
+         (vundo-highlight :foreground primary-emphasis)
+         (vundo-saved :foreground secondary)
+         (transient-disabled-suffix
+          :foreground fg-on-bright :background error-alert)
+         (transient-enabled-suffix
+          :foreground fg-on-bright :background secondary-ansi-vivid)
+         (transient-key-exit :foreground error-emphasis)
+         (transient-key-stay :foreground secondary-polarity)
+         (magit-section-heading :foreground primary-emphasis)
+         (magit-branch-local :foreground primary-emphasis)
+         (magit-branch-remote :foreground secondary)
+         (magit-diff-removed :foreground primary-vivid
+                             :background error-muted)
+         (magit-diff-added :foreground secondary-vivid
+                           :background success-muted)
+         (magit-diff-lines-heading :foreground bg-main
+                                   :background primary)
+         (magit-process-ok :foreground success-emphasis)
+         (magit-process-ng :foreground error-emphasis)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation))))
+  ;; These faces inherit a mapped root upstream.  Mapping them as well would
+  ;; duplicate and freeze package-owned inheritance decisions.
+  (dolist (face '(corfu-popupinfo vundo-last-saved
+                  magit-branch-current magit-diff-hunk-region
+                  magit-diff-their))
+    (should-not (chroma-face-mapping face))))
+
+(ert-deftest chroma-faces-standard-inheritance-is-not-frozen ()
+  "Faces whose defaults only inherit another face remain unmapped."
+  (dolist
+      (face
+       '(font-lock-comment-delimiter-face font-lock-doc-face
+         font-lock-function-call-face font-lock-misc-punctuation-face
+         font-lock-preprocessor-face font-lock-property-name-face
+         font-lock-property-use-face font-lock-regexp-face
+         font-lock-variable-use-face font-lock-warning-face
+         mode-line-emphasis mode-line-highlight header-line-highlight
+         help-argument-name calendar-today info-menu-header
+         info-title-1 info-title-2
+         show-paren-match-expression completions-highlight
+         completions-first-difference compilation-line-number
+         compilation-column-number line-number-current-line
+         tab-bar-tab tab-line-tab-current))
+    (should-not (chroma-face-mapping face))))
+
+(ert-deftest chroma-faces-colorless-standard-faces-remain-unmapped ()
+  "Faces with no standard color do not gain a Chroma color."
+  (dolist
+      (face
+       '(font-lock-negation-char-face font-lock-number-face
+         font-lock-operator-face font-lock-punctuation-face
+         font-lock-regexp-grouping-backslash
+         font-lock-regexp-grouping-construct
+         vertical-border internal-border child-frame-border))
+    (should-not (chroma-face-mapping face))))
+
+(ert-deftest chroma-faces-source-relative-regressions-use-dedicated-roles ()
+  "High-risk faces use roles matching their standard prominence."
+  (dolist
+      (expectation
+       '((org-mode-line-clock-overrun :background error-alert)
+         (fringe :foreground fg-main :background bg-main)
+         (window-divider :foreground window-divider)
+         (fill-column-indicator :foreground fg-fill-column)
+         (diff-indicator-added :foreground secondary-indicator-added)
+         (diff-indicator-removed :foreground primary-indicator-removed)
+         (diff-indicator-changed
+          :foreground secondary-changed-indicator)
+         (ediff-fine-diff-A :background primary-fine-a)
+         (ediff-fine-diff-Ancestor :background primary-fine-ancestor)
+         (ediff-fine-diff-B :background secondary-fine-b)
+         (ediff-fine-diff-C :background secondary-fine-c)
+         (whitespace-hspace
+          :foreground fg-fixed-gray :background secondary-muted)
+         (whitespace-big-indent
+          :foreground primary-whitespace-big-foreground
+          :background primary-alert)
+         (shr-selected-link
+          :foreground primary-selected-link :background error-alert)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation)))))
+
+(ert-deftest chroma-faces-explicit-default-color-attributes-are-covered ()
+  "Mappings replace both parts of audited multi-color default faces."
+  (dolist
+      (expectation
+       '((ansi-color-red
+          :foreground primary-ansi-mid :background primary-ansi-mid)
+         (ansi-color-bright-green
+          :foreground secondary-ansi-high
+          :background secondary-ansi-high)
+         (dired-broken-symlink
+          :foreground secondary-ansi-vivid :background primary-alert)
+         (help-key-binding
+          :foreground primary-emphasis :background bg-subtle)
+         (holiday :background warning-muted)
+         (line-number-major-tick :background bg-mode-line)
+         (line-number-minor-tick :background bg-ui-inactive)
+         (tab-line-highlight :foreground fg-on-bright :background bg-ui)
+         (whitespace-space
+          :foreground fg-fixed-gray :background secondary-muted)
+         (whitespace-tab
+          :foreground fg-fixed-gray :background secondary-muted)
+         (whitespace-space-after-tab
+          :foreground primary-fixed-dark
+          :background secondary-ansi-vivid)
+         (whitespace-space-before-tab
+          :foreground primary-fixed-dark :background warning)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation)))))
+
+(ert-deftest chroma-faces-magit-range-boundary-is-prominent ()
+  "Magit's selected range boundary uses a high-contrast primary color."
+  (dolist (variant chroma-supported-variants)
+    (let* ((colors
+            (chroma-resolve-semantic-colors 'yellow 'purple variant))
+           (attributes
+            (chroma--resolve-face-attributes
+             (chroma-face-mapping 'magit-diff-lines-heading)
+             colors)))
+      (should
+       (equal (plist-get attributes :foreground)
+              (chroma-palette-color 'neutral 'bg-main variant)))
+      (should
+       (equal (plist-get attributes :background)
+              (chroma-palette-color 'yellow 'base variant)))))
+  ;; Magit overlays this structural face on the selected lines.  Its default
+  ;; bold weight must remain package-owned, and a background here would hide
+  ;; the added/removed line colors underneath it.
+  (should-not (chroma-face-mapping 'magit-diff-hunk-region)))
+
+(ert-deftest chroma-faces-mappings-have-unique-faces ()
+  "Each face has exactly one semantic mapping."
+  (let (seen)
+    (dolist (mapping (chroma-face-mappings))
+      (should-not (memq (car mapping) seen))
+      (push (car mapping) seen))))
+
+(ert-deftest chroma-faces-standard-chromatic-faces-use-selected-hues ()
+  "Audited built-in chromatic faces use primary or secondary roles."
+  (dolist
+      (face
+       '(region secondary-selection highlight
+         font-lock-comment-face completions-common-part
+         compilation-mode-line-exit compilation-mode-line-fail
+         custom-changed custom-comment-tag custom-group-tag
+         custom-group-tag-1 custom-invalid custom-modified custom-rogue
+         custom-set custom-state custom-themed custom-variable-obsolete
+         custom-variable-tag widget-button-pressed widget-documentation
+         diff-error ediff-current-diff-A ediff-current-diff-B
+         ediff-current-diff-C ediff-fine-diff-A ediff-fine-diff-B
+         ediff-fine-diff-C elisp-shorthand-font-lock-face
+         isearch-group-1 isearch-group-2 org-agenda-done
+         org-agenda-structure
+         org-clock-overlay org-date org-date-selected
+         org-dispatcher-highlight org-document-info org-document-title
+         org-done org-drawer org-ellipsis org-footnote org-formula
+         org-headline-done org-headline-todo org-latex-and-related
+         org-mode-line-clock-overrun org-scheduled
+         org-scheduled-previously org-scheduled-today org-sexp-date
+         org-table org-time-grid org-todo org-upcoming-deadline
+         bookmark-face edmacro-label epa-field-body epa-field-name
+         epa-mark epa-string epa-validity-high epa-validity-medium
+         eshell-prompt eww-invalid-certificate eww-valid-certificate
+         message-header-cc message-header-name message-header-newsgroups
+         message-header-other message-header-subject message-header-to
+         message-header-xheader message-mml message-separator shr-mark
+         shr-selected-link smerge-base smerge-lower smerge-refined-added
+         smerge-refined-removed smerge-upper speedbar-button-face
+         speedbar-directory-face speedbar-file-face speedbar-highlight-face
+         speedbar-selected-face speedbar-separator-face speedbar-tag-face
+         tty-menu-disabled-face tty-menu-enabled-face tty-menu-selected-face
+         tab-line-close-highlight whitespace-big-indent whitespace-hspace
+         whitespace-indentation whitespace-line
+         whitespace-missing-newline-at-eof))
+    (let ((mapping (chroma-face-mapping face))
+          selected-hue-p)
+      (should mapping)
+      (while mapping
+        (pop mapping)
+        (let* ((role (pop mapping))
+               (source (assq role chroma-semantic-role-sources)))
+          (when (memq (nth 1 source) '(primary secondary))
+            (setq selected-hue-p t))))
+      (should selected-hue-p))))
+
+(ert-deftest chroma-faces-org-source-and-completion-regression ()
+  "Org source overlays and inherited completion highlights use selected hues."
+  (let* ((variant 'light)
+         (colors
+          (chroma-resolve-semantic-colors 'purple 'auto variant))
+         (primary (chroma-palette-color 'purple 'base variant))
+         (primary-refinement
+          (chroma-palette-color 'purple 'refinement variant))
+         (secondary-selection
+          (chroma-palette-color
+           'cyan 'standalone-selection variant)))
+    (should
+     (equal
+      (plist-get
+       (chroma--resolve-face-attributes
+       (chroma-face-mapping 'secondary-selection) colors)
+       :background)
+      secondary-selection))
+    (should
+     (equal
+      (plist-get
+       (chroma--resolve-face-attributes
+        (chroma-face-mapping 'highlight) colors)
+       :background)
+      primary-refinement))
+    (should-not (chroma-face-mapping 'completions-highlight))
+    (should
+     (equal
+      (plist-get
+       (chroma--resolve-face-attributes
+        (chroma-face-mapping 'font-lock-comment-face) colors)
+      :foreground)
+      primary))))
+
+(ert-deftest chroma-faces-primary-hue-is-dominant ()
+  "Primary supplies at least 55 percent of chromatic mapping attributes."
+  (let ((primary-count 0)
+        (secondary-count 0))
+    (dolist (mapping (chroma-face-mappings))
+      (let ((attributes (cdr mapping)))
+        (while attributes
+          (pop attributes)
+          (let* ((role (pop attributes))
+                 (selector (nth 1
+                                (assq role
+                                      chroma-semantic-role-sources))))
+            (cond
+             ((eq selector 'primary)
+              (setq primary-count (1+ primary-count)))
+             ((eq selector 'secondary)
+              (setq secondary-count (1+ secondary-count))))))))
+    (should (> primary-count secondary-count))
+    (should (>= (/ (float primary-count)
+                   (+ primary-count secondary-count))
+                0.55))))
+
+(ert-deftest chroma-faces-mappings-contain-only-color-attributes ()
+  "No face mapping can override a structural face attribute."
+  (let ((known-roles (mapcar #'car chroma-semantic-role-sources)))
+    (dolist (mapping (chroma-face-mappings))
+      (let ((attributes (cdr mapping)))
+        (should (= (% (length attributes) 2) 0))
+        (while attributes
+          (should (memq (pop attributes) chroma-face-color-attributes))
+          (should (memq (pop attributes) known-roles)))))))
+
+(ert-deftest chroma-faces-diff-colors-follow-primary-and-secondary ()
+  "Diff colors contain only the selected primary and secondary hues."
+  (dolist (variant chroma-supported-variants)
+    (let* ((colors
+            (chroma-resolve-semantic-colors 'blue 'orange variant))
+           (added
+            (chroma--resolve-face-attributes
+             (chroma-face-mapping 'diff-added) colors))
+           (removed
+            (chroma--resolve-face-attributes
+             (chroma-face-mapping 'diff-removed) colors)))
+      (should
+       (null (plist-get added :foreground)))
+      (should
+       (equal (plist-get added :background)
+              (chroma-palette-color 'orange 'muted variant)))
+      (should
+       (null (plist-get removed :foreground)))
+      (should
+       (equal (plist-get removed :background)
+              (chroma-palette-color 'blue 'muted variant)))))
+  ;; The standard `diff-changed' face has no color of its own.  Refined and
+  ;; indicator faces retain the standard changed-state color distinction.
+  (should-not (chroma-face-mapping 'diff-changed))
+  (should
+   (equal (chroma-face-mapping 'diff-refine-changed)
+          '(:background secondary-fine-c)))
+  (should-not
+   (equal (chroma-face-mapping 'diff-added)
+          (chroma-face-mapping 'diff-refine-added)))
+  (should-not
+   (equal (chroma-face-mapping 'diff-removed)
+          (chroma-face-mapping 'diff-refine-removed))))
+
+(ert-deftest chroma-faces-generated-specs-contain-only-color-attributes ()
+  "Generated theme specs preserve the color-only mapping invariant."
+  (dolist (variant chroma-supported-variants)
+    (let ((colors
+           (chroma-resolve-semantic-colors nil nil variant)))
+      (dolist (setting (chroma-build-face-specs colors))
+        (dolist (display-spec (cadr setting))
+          (let ((attributes (cadr display-spec)))
+            (while attributes
+              (should
+               (memq (pop attributes) chroma-face-color-attributes))
+              (should (stringp (pop attributes))))))))))
+
+(ert-deftest chroma-faces-theme-preserves-non-color-attributes ()
+  "Enabling Chroma leaves representative structural attributes intact."
+  (let* ((faces '(default link mode-line font-lock-keyword-face))
+         (attributes '(:family :foundry :width :height :weight :slant
+                       :underline :overline :strike-through :box
+                       :inverse-video :stipple :extend :inherit))
+         (was-enabled (memq 'chroma custom-enabled-themes))
+         (before
+          (mapcar
+           (lambda (face)
+             (cons face
+                   (mapcar (lambda (attribute)
+                             (cons attribute
+                                   (face-attribute face attribute nil nil)))
+                           attributes)))
+           faces)))
+    (unwind-protect
+        (progn
+          (unless was-enabled
+            (enable-theme 'chroma))
+          (dolist (face-entry before)
+            (dolist (attribute-entry (cdr face-entry))
+              (should
+               (equal (cdr attribute-entry)
+                      (face-attribute (car face-entry)
+                                      (car attribute-entry) nil nil))))))
+      (unless was-enabled
+        (disable-theme 'chroma)))))
+
+(ert-deftest chroma-faces-custom-change-refreshes-theme-specs ()
+  "Customize changes replace colors stored in an enabled theme."
+  (let ((old-primary chroma-primary)
+        (old-secondary chroma-secondary)
+        (old-primary-theme-value
+         (copy-tree (get 'chroma-primary 'theme-value)))
+        (old-secondary-theme-value
+         (copy-tree (get 'chroma-secondary 'theme-value)))
+        (old-primary-customized-value
+         (copy-tree (get 'chroma-primary 'customized-value)))
+        (old-secondary-customized-value
+         (copy-tree (get 'chroma-secondary 'customized-value)))
+        (old-user-settings (copy-tree (get 'user 'theme-settings)))
+        (was-enabled (memq 'chroma custom-enabled-themes)))
+    (unwind-protect
+        (progn
+          (unless was-enabled
+            (enable-theme 'chroma))
+          (customize-set-variable 'chroma-secondary 'auto)
+          (customize-set-variable 'chroma-primary 'red)
+          (should (equal
+                   (chroma-test--theme-foreground
+                    'font-lock-keyword-face)
+                   (chroma-palette-color 'red 'vivid)))
+          (should (eq (chroma-resolve-secondary) 'green)))
+      (unless was-enabled
+        (disable-theme 'chroma))
+      (set-default 'chroma-primary old-primary)
+      (set-default 'chroma-secondary old-secondary)
+      (put 'chroma-primary 'theme-value old-primary-theme-value)
+      (put 'chroma-secondary 'theme-value old-secondary-theme-value)
+      (put 'chroma-primary 'customized-value
+           old-primary-customized-value)
+      (put 'chroma-secondary 'customized-value
+           old-secondary-customized-value)
+      (put 'user 'theme-settings old-user-settings)
+      (when was-enabled
+        (chroma-theme-refresh)))))
+
+(provide 'chroma-faces-test)
+
+;;; chroma-faces-test.el ends here

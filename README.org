@@ -1,0 +1,280 @@
+* Chroma Theme
+
+Chroma Theme is a color theme that preserves the design of Emacs's standard faces as much as possible while replacing only their color layer.
+
+Whereas conventional themes redesign entire faces, including their font, weight, underline, box, and inheritance, Chroma owns only the decision of which semantic color each face should use. In principle, its theme face specs set only ~:foreground~ and ~:background~.
+
+** Design
+
+Colors are separated into three layers:
+
+#+begin_src text
+Finite palette
+    ↓
+Semantic color roles
+    ↓
+Emacs face mappings
+#+end_src
+
+- The palette is a finite set of HEX values selected in advance by the author. Chroma does not calculate hue, lightness, saturation, or contrast at runtime to generate or adjust colors.
+- Semantic roles describe how colors are used, with names such as ~bg-main~, ~fg-dim~, ~primary~, ~secondary~, ~error~, and ~match~.
+- Face mappings contain only associations such as ~font-lock-keyword-face → primary-vivid~; they know nothing about HEX values.
+
+The data structure is ~variant → display class → palette~. Chroma currently includes independent true-color palettes for the dark and light variants. Future 256-color and 16-color palettes can be added independently of the existing mappings.
+
+** Primary and Secondary
+
+Primary is the central color chosen by the user. When Secondary is set to ~auto~, Chroma selects it from combinations defined and verified by the author.
+
+#+begin_src elisp
+(setq chroma-primary 'blue)
+(setq chroma-secondary 'auto) ; Select purple for blue
+(setq chroma-variant 'dark)
+#+end_src
+
+Secondary can also be overridden explicitly.
+
+#+begin_src elisp
+(setq chroma-primary 'blue)
+(setq chroma-secondary 'orange)
+#+end_src
+
+The following eight hues are available:
+
+- ~blue~
+- ~cyan~
+- ~green~
+- ~yellow~
+- ~orange~
+- ~red~
+- ~magenta~
+- ~purple~
+
+The initial automatic pairings are:
+
+| Primary | Secondary |
+|---------+-----------|
+| blue    | purple    |
+| cyan    | orange    |
+| green   | magenta   |
+| yellow  | blue      |
+| orange  | cyan      |
+| red     | green     |
+| magenta | green     |
+| purple  | cyan      |
+
+These pairings are defined in ~chroma-primary-secondary-pairs~ in [[chroma-palette.el][chroma-palette.el]].
+
+*** All chromatic roles follow the two selected colors
+
+Chroma does not assign fixed red, yellow, green, or cyan colors to error, warning, success, and info. Every chromatic role—including those used for diffs, compilation, search, strings, and diagnostics—uses only Primary or Secondary and their finite tones. Neutral roles such as backgrounds, body text, and borders remain achromatic.
+
+| Semantic family      | Selected hue         |
+|----------------------+----------------------|
+| error, removed       | Primary              |
+| info                 | Primary emphasis     |
+| success, added       | Secondary            |
+| warning              | Secondary base       |
+| changed indicator    | Secondary emphasis   |
+| refined changed area | Secondary refinement |
+
+For example, when Primary is ~blue~ and Secondary is ~orange~, removed diff content is blue, added content is orange, and changed indicators and refined changed areas use orange tones. The standard ~diff-changed~ face has no distinct color of its own, so Chroma does not add one.
+
+*** Tones that preserve the visual hierarchy of the original faces
+
+Even when faces use the same hue, Chroma does not collapse their original lightness, background contrast, and degree of emphasis into a single color. The chromatic palette provides the following finite tones for different purposes:
+
+| Tone                                 | Purpose                                                          |
+|--------------------------------------+------------------------------------------------------------------|
+| ~muted~                              | A regular, subtle background                                     |
+| ~selection~ / ~standalone-selection~ | The region and an independent secondary selection                |
+| ~refinement~ / ~fine-*~ / ~current-*~ | Diff, Smerge, and Ediff levels kept distinct from one another    |
+| ~alert~                              | Strong warning backgrounds such as trailing whitespace           |
+| ~indicator-*~                        | The original low, middle, and changed Diff indicator levels      |
+| ~status-*~                           | Variant-specific Error, Warning, and Success prominence          |
+| ~ansi-*~                             | The original lightness ordering of normal and bright ANSI colors |
+| ~base~ / ~emphasis~ / ~vivid~        | Regular, emphasized, and especially bright syntax text           |
+| ~polarity-*~ / ~dark-only~           | Faces whose standard lightness changes between dark and light    |
+
+The target lightness values for these tones are fixed in advance for both dark and light variants. Source-relative tones preserve the standard face's foreground/background contrast or its position in a related-face hierarchy. Only when a specified hue would fall outside sRGB at that lightness and saturation does the palette include a HEX value with reduced saturation rather than reduced lightness. Dedicated neutral tones also preserve the original light–dark relationships of whitespace markers, fill-column indicators, mode lines, tabs, and window dividers.
+
+** Installation and Configuration
+
+A local checkout can be used with only the ~:load-path~ setting in ~use-package~. When ~chroma-theme.el~ is loaded, it also adds its directory to ~custom-theme-load-path~, making ~chroma~ available in the ~M-x load-theme~ list.
+
+#+begin_src elisp
+(use-package chroma-theme
+  :load-path "/path/to/chroma-theme/"
+  :custom
+  (chroma-variant 'dark)
+  (chroma-primary 'blue)
+  (chroma-secondary 'auto))
+#+end_src
+
+You can then select it from the list or enable it in your configuration.
+
+#+begin_src elisp
+(use-package chroma-theme
+  :load-path "/path/to/chroma-theme/"
+  :custom
+  (chroma-variant 'light)
+  (chroma-primary 'blue)
+  (chroma-secondary 'auto)
+  :config
+  (load-theme 'chroma t))
+#+end_src
+
+Without ~use-package~, add the directory to the regular load path and load the library once.
+
+#+begin_src elisp
+(add-to-list 'load-path "/path/to/chroma-theme/")
+(require 'chroma-theme)
+#+end_src
+
+When Chroma is installed as a package, the generated autoload also registers the theme directory.
+
+You can also use ~setq~ in the ~:config~ section of ~use-package~. Chroma rebuilds its face specs from the current options when the theme is enabled.
+
+#+begin_src elisp
+(use-package chroma-theme
+  :load-path "/path/to/chroma-theme/"
+  :config
+  (setq chroma-variant 'light
+        chroma-primary 'yellow))
+#+end_src
+
+** Dark / Light
+
+Use ~chroma-variant~ to choose between independently designed and verified dark and light palettes. The light palette is not generated by transforming the dark colors at runtime.
+
+#+begin_src elisp
+(setq chroma-variant 'light)
+(load-theme 'chroma t)
+#+end_src
+
+To switch variants after enabling the theme, reapply it as you would after changing any other option.
+
+#+begin_src elisp
+(setq chroma-variant 'dark)
+(chroma-theme-refresh)
+#+end_src
+
+In Customize, use ~M-x customize-group RET chroma~ to select Dark or Light. Changes are applied automatically.
+
+If you change colors with ~setq~ after enabling the theme, reapply it.
+
+#+begin_src elisp
+(setq chroma-primary 'red
+      chroma-secondary 'auto)
+(chroma-theme-refresh)
+#+end_src
+
+You can also make changes through ~M-x customize-group RET chroma~. Changes made through Customize are automatically reapplied to an active Chroma theme.
+
+** Respecting Emacs's Standard Design
+
+Chroma does not set non-color information such as the following in its face specs:
+
+- family, foundry, height, and width
+- weight and slant
+- the presence or shape of underline, overline, and strike-through
+- box geometry and line width
+- extend, inherit, stipple, and inverse-video
+
+It also avoids copying values from the standard definitions into the theme. Consequently, if Emacs changes these design elements in the future, stale structural definitions in Chroma will not prevent those changes from taking effect.
+
+*** Limitations of compound attributes
+
+Values such as ~(:underline (:style wave :color "red"))~ and ~(:box (:line-width 1 :color "blue"))~ contain both structure and color in a single attribute. Emacs theme face specs cannot safely merge only the nested ~:color~; setting the entire attribute would fix the original style or geometry in place.
+
+The initial release does not set any such compound attributes. As a result, colors found only inside compound attributes, such as Flymake's wave underlines, remain as defined at their source. Any future support will likewise avoid copying Emacs's structure and will be added only if a safe API or a narrowly scoped, verifiable method becomes available.
+
+** Face Coverage
+
+The initial release maps the major built-in faces in the following categories:
+
+- Basic, Font Lock
+- Mode Line, Header Line, Minibuffer
+- Search, Match, Paren Matching
+- Completion
+- Fringe, Borders, Line Numbers, Tabs
+- Diff, Ediff, Compilation diagnostics
+- Dired, Help, Info, Calendar, Whitespace
+- Message, Smerge, EPA, EWW/SHR, Bookmark, Eshell
+- Speedbar, TTY menu, Edmacro
+- Explicit Org colors, Customize, Widget, ANSI color
+
+Faces that might not exist in a particular Emacs version, such as ~mode-line-active~, are added to the theme spec only after a ~facep~ check. If a built-in library defines new faces after the theme is enabled, a lightweight ~after-load-functions~ hook rebuilds the mappings.
+
+Faces that are chromatic in Emacs's standard true-color definitions are assigned to either Primary or Secondary. For example, ~region~, ~hl-line~, ~secondary-selection~, ~highlight~, Font Lock comments, and completion highlights retain color instead of becoming neutral, using finite tones of the two selected hues. Shadows and ordinary UI backgrounds, which are gray in the standard definitions, remain neutral roles.
+
+Faces that have no distinct color in the standard definitions and only inherit another face do not have individual mappings. For example, Font Lock comment delimiter, doc, function call, property use, and variable use faces, as well as completion highlight faces, receive Chroma colors from their respective standard parent faces. Chroma also does not add new chromatic colors to standard number, operator, punctuation, or regexp grouping faces that are colorless by default.
+
+Because Primary is the theme's central color, it is preferentially assigned to the current line, ordinary emphasis, and major syntax elements. The ~region~ selection uses Secondary so it remains distinguishable when overlapping ~hl-line~. Secondary is also used for supporting meanings that should be differentiated from Primary, such as secondary selections, additions and success, and visited links. ERT verifies that Primary accounts for at least 55% of the chromatic attributes in the face mappings.
+
+The standard Emacs face is named ~link-visited~, not ~visited-link~, so Chroma maps ~link-visited → visited-link~ as a semantic role.
+
+*** External packages
+
+Chroma supports the following external packages, whose defaults use specific colors:
+
+- Avy 0.5.0
+- Corfu 2.10 (including the ~corfu-popupinfo~ inheritance chain)
+- diff-hl 1.10.0
+- Magit / magit-section 4.6.0
+- Tempel 1.14
+- Transient 0.13.5
+- Vundo 2.4.0
+
+The listed versions are those whose face definitions were audited. Chroma does not ~require~ these packages as runtime dependencies. If a package has already been loaded, Chroma sets only the faces that exist. If a package is loaded after the theme is enabled, the additional faces are applied through ~after-load-functions~.
+
+For external packages, Chroma likewise sets only ~:foreground~ and ~:background~ where the upstream defaults specify concrete colors. For example, Tempel's ~:slant~, Vundo's ~:weight~, and Magit Diff's ~:extend~ retain their upstream definitions. Mappings are not duplicated when a child face merely inherits a standard face or a package face that already has colors set.
+
+When multiple lines are selected in Magit, the range boundary in ~magit-diff-lines-heading~ is displayed with a high-contrast Primary color. Chroma does not set a color on ~magit-diff-hunk-region~, which overlaps the selected lines, preserving both Magit's bold styling and the added/removed colors beneath it.
+
+Packages designed primarily around standard face inheritance—such as Consult, Embark, Marginalia, Vertico, Which-key, and Denote—inherit Chroma's built-in face colors without individual mappings. Colors are not reduced to Primary and Secondary for packages where the range of colors itself carries information, such as Rainbow Delimiters or previews of colors in actual data.
+
+External mappings are kept separately in [[chroma-faces-external.el][chroma-faces-external.el]] and use the same semantic roles and validation rules as the built-in mappings.
+
+** Supported Environments
+
+- Target Emacs version: 28.1 or later
+- Development and verification environment: Emacs 30.2
+- Officially supported display: GUI / true-color
+- Supported variants: dark / light
+
+Face specs apply only to color displays with at least 16,777,216 colors. Because Chroma does not include unverified approximations for 256-color or 16-color terminals, those environments are currently unsupported. Chroma's color specs are not applied in non-true-color environments.
+
+** Palette and Contrast
+
+Every color is specified explicitly in [[chroma-palette.el][chroma-palette.el]]. Runtime code performs palette lookups only.
+
+For testing only, ERT calculates WCAG relative luminance and contrast ratios and verifies at least the following:
+
+- Main text in dark and light variants: at least 7.0:1
+- Representative normal text in dark and light variants: at least 4.5:1
+- The base color against the main background for every hue in both variants: at least 4.5:1
+- The emphasis color against the main background for every hue in both variants: at least 4.5:1
+- Main text against muted highlight backgrounds for every hue in both variants: at least 4.5:1
+- Status base/emphasis against the corresponding muted background for every hue in both variants: at least 4.5:1
+- For every hue, refinement stands out from the background more than muted, and alert more than refinement
+- Selection/refinement retains higher OKLab chroma than muted
+- Vivid syntax falls within dark/light contrast ranges close to the standard faces
+- The relative lightness ordering of Diff/Smerge refinement, window dividers, and mode/tab UI
+
+These calculations are used only to validate the palettes, not to generate or adjust colors at runtime.
+
+** Development
+
+#+begin_src sh
+make test       # All ERT tests
+make compile    # Byte-compile
+make checkdoc   # Docstring/style checks
+make clean-elc  # Remove generated .elc files
+#+end_src
+
+Tests are divided into palette, core, face-invariant, and contrast suites. For non-color information in particular, they verify both that every mapping—including built-in and external package mappings—contains only ~:foreground~ and ~:background~, and that representative faces retain their structural attributes before and after the theme is enabled. Regression tests also cover duplicate external package face names, semantic roles, Primary's share of chromatic attributes, and the relative ordering of lightness, refinement, and boundaries found in the original faces.
+
+** License
+
+GNU General Public License version 3 or later. See [[LICENSE][LICENSE]] for details.
