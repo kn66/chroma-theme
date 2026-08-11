@@ -41,8 +41,8 @@
     (/ (+ (max first-luminance second-luminance) 0.05)
        (+ (min first-luminance second-luminance) 0.05))))
 
-(defun chroma-test--oklab-chroma (color)
-  "Return OKLab chroma for hexadecimal COLOR."
+(defun chroma-test--oklab (color)
+  "Return the OKLab lightness and chroma of hexadecimal COLOR."
   (let* ((red (chroma-test--linear-channel
                (chroma-test--hex-channel color 1)))
          (green (chroma-test--linear-channel
@@ -58,11 +58,32 @@
          (l-root (expt ll (/ 1.0 3.0)))
          (m-root (expt mm (/ 1.0 3.0)))
          (s-root (expt ss (/ 1.0 3.0)))
+         (lightness
+          (+ (* 0.2104542553 l-root) (* 0.7936177850 m-root)
+             (* -0.0040720468 s-root)))
          (aa (+ (* 1.9779984951 l-root) (* -2.4285922050 m-root)
                 (* 0.4505937099 s-root)))
          (bb (+ (* 0.0259040371 l-root) (* 0.7827717662 m-root)
                 (* -0.8086757660 s-root))))
-    (sqrt (+ (* aa aa) (* bb bb)))))
+    (list lightness
+          (sqrt (+ (* aa aa) (* bb bb)))
+          (mod (* 180.0 (/ (atan bb aa) float-pi)) 360.0))))
+
+(defun chroma-test--oklab-lightness (color)
+  "Return OKLab lightness for hexadecimal COLOR."
+  (car (chroma-test--oklab color)))
+
+(defun chroma-test--oklab-chroma (color)
+  "Return OKLab chroma for hexadecimal COLOR."
+  (cadr (chroma-test--oklab color)))
+
+(defun chroma-test--oklab-hue (color)
+  "Return the OKLab hue angle for hexadecimal COLOR."
+  (nth 2 (chroma-test--oklab color)))
+
+(defun chroma-test--hue-distance (first second)
+  "Return the shortest distance in degrees between FIRST and SECOND."
+  (abs (- (mod (+ (- first second) 180.0) 360.0) 180.0)))
 
 (defun chroma-test--should-meet-contrast (first second minimum)
   "Assert that FIRST and SECOND meet contrast ratio MINIMUM."
@@ -84,6 +105,30 @@
        (alist-get 'fg-main colors)
        (alist-get 'bg-main colors)
        chroma-test-enhanced-text-contrast))))
+
+(ert-deftest chroma-contrast-palettes-follow-complementary-hue-axes ()
+  "Chromatic palette leaves follow canonical complementary OKLCH axes."
+  (dolist (pair chroma-primary-secondary-pairs)
+    (let ((primary-angle (alist-get (car pair) chroma-hue-angles))
+          (secondary-angle (alist-get (cdr pair) chroma-hue-angles)))
+      (should
+       (< (abs (- (chroma-test--hue-distance
+                   primary-angle secondary-angle)
+                  180.0))
+          0.001))))
+  (dolist (variant chroma-supported-variants)
+    (dolist (hue chroma-supported-hues)
+      (let ((target (alist-get hue chroma-hue-angles)))
+        (dolist (token chroma-palette-required-hue-tokens)
+          (let ((color (chroma-palette-color hue token variant)))
+            ;; Hue is not meaningful for nearly achromatic colors.  For
+            ;; chromatic leaves, allow only the error introduced by 8-bit
+            ;; hexadecimal quantization.
+            (when (>= (chroma-test--oklab-chroma color) 0.02)
+              (should
+               (< (chroma-test--hue-distance
+                   (chroma-test--oklab-hue color) target)
+                  3.0)))))))))
 
 (ert-deftest chroma-contrast-neutral-text-pairs-meet-threshold ()
   "Both variants' representative neutral pairs meet 4.5:1."
@@ -148,9 +193,9 @@
   "Status text retains the standard dark/light contrast asymmetry."
   (dolist (hue chroma-supported-hues)
     (dolist (expectation
-             '((status-error 13.5 13.8 3.9 4.1)
-               (status-warning 8.8 9.2 2.2 2.5)
-               (status-success 15.1 15.5 4.2 4.6)))
+             '((status-error 15.3 15.5 4.2 4.3)
+               (status-warning 10.1 10.3 2.4 2.5)
+               (status-success 17.2 17.4 4.6 4.7)))
       (let ((token (nth 0 expectation)))
         (chroma-test--should-have-contrast-between
          (chroma-palette-color hue token 'dark)
@@ -201,11 +246,11 @@
       (chroma-test--should-have-contrast-between
        (chroma-palette-color hue 'changed-indicator 'dark)
        (chroma-palette-color 'neutral 'bg-main 'dark)
-       8.4 8.6)
+       9.5 9.7)
       (chroma-test--should-have-contrast-between
        (chroma-palette-color hue 'changed-indicator 'light)
        (chroma-palette-color 'neutral 'bg-main 'light)
-       2.4 2.6))))
+       2.6 2.7))))
 
 (ert-deftest chroma-contrast-ediff-fine-levels-retain-source-order ()
   "Ediff's four fine backgrounds retain their variant-specific ordering."
@@ -264,6 +309,50 @@
           (should
            (> (chroma-test--oklab-chroma refinement)
               (chroma-test--oklab-chroma muted))))))))
+
+(ert-deftest chroma-contrast-background-tones-match-source-strength ()
+  "Source-relative backgrounds preserve lightness without excess chroma."
+  (dolist
+      (expectation
+       '((refinement "#556b2f" "#b4eeb4")
+         (paren-match "#4f94cd" "#40e0d0")
+         (pulse "#aaaa33" "#ffffaa")
+         (diff-added "#335533" "#eeffee")
+         (diff-removed "#553333" "#ffeeee")
+         (diff-refine-added "#22aa22" "#bbffbb")
+         (diff-refine-removed "#aa2222" "#ffcccc")
+         (magit-base "#555522" "#ffffcc")
+         (magit-removed-highlight "#663333" "#eecccc")
+         (magit-added-highlight "#336633" "#cceecc")
+         (magit-base-highlight "#666622" "#eeeebb")
+         (fine-a "#aa2222" "#ffbbbb")
+         (fine-ancestor "#009591" "#00c5c0")
+         (fine-b "#22aa22" "#aaffaa")
+         (fine-c "#aaaa22" "#ffff55")
+         (current-a "#553333" "#ffdddd")
+         (current-ancestor "#004151" "#cfdeee")
+         (current-b "#335533" "#ddffdd")
+         (current-c "#888833" "#ffffaa")))
+    (dolist (variant chroma-supported-variants)
+      (let* ((reference
+              (nth (if (eq variant 'dark) 1 2) expectation))
+             (reference-lightness
+              (chroma-test--oklab-lightness reference))
+             (reference-chroma
+              (chroma-test--oklab-chroma reference)))
+        (dolist (hue chroma-supported-hues)
+          (let ((color
+                 (chroma-palette-color
+                  hue (car expectation) variant)))
+            ;; Gamut mapping preserves source lightness and only reduces
+            ;; chroma when the selected hue cannot fit in sRGB at that level.
+            (should
+             (< (abs (- (chroma-test--oklab-lightness color)
+                        reference-lightness))
+                0.004))
+            (should
+             (<= (chroma-test--oklab-chroma color)
+                 (+ reference-chroma 0.004)))))))))
 
 (ert-deftest chroma-contrast-vivid-tone-preserves-standard-syntax-levels ()
   "Vivid syntax is very bright on dark and moderately dark on light."

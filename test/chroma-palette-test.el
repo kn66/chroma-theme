@@ -5,6 +5,13 @@
 (require 'ert)
 (require 'chroma-palette)
 
+(ert-deftest chroma-palette-main-backgrounds-are-black-and-white ()
+  "Main backgrounds use the canonical dark and light endpoints."
+  (should (equal (chroma-palette-color 'neutral 'bg-main 'dark)
+                 "#000000"))
+  (should (equal (chroma-palette-color 'neutral 'bg-main 'light)
+                 "#ffffff")))
+
 (ert-deftest chroma-palette-is-complete ()
   "Every shipped palette contains all required finite tokens."
   (should (equal (mapcar #'car chroma-palettes)
@@ -22,6 +29,20 @@
               (should hue-data)
               (dolist (token chroma-palette-required-hue-tokens)
                 (should (stringp (alist-get token hue-data)))))))))))
+
+(ert-deftest chroma-palette-hue-metadata-is-complete ()
+  "Every supported hue has one canonical angle and complement."
+  (should (equal (mapcar #'car chroma-hue-angles)
+                 chroma-supported-hues))
+  (should (equal (mapcar #'car chroma-primary-secondary-pairs)
+                 chroma-supported-hues))
+  (dolist (hue chroma-supported-hues)
+    (let ((angle (alist-get hue chroma-hue-angles))
+          (complement (alist-get hue chroma-primary-secondary-pairs)))
+      (should (numberp angle))
+      (should (>= angle 0.0))
+      (should (< angle 360.0))
+      (should (memq complement chroma-supported-hues)))))
 
 (ert-deftest chroma-palette-colors-are-literal-hex-values ()
   "Palette leaves contain explicit six-digit hexadecimal colors."

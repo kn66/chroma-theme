@@ -6,10 +6,14 @@
 (require 'chroma-core)
 
 (ert-deftest chroma-core-auto-secondary-pairs ()
-  "Every primary hue resolves to its designed automatic partner."
+  "Every primary hue resolves to its symmetric complementary partner."
+  (should (equal (mapcar #'car chroma-primary-secondary-pairs)
+                 chroma-supported-hues))
   (dolist (pair chroma-primary-secondary-pairs)
-    (should (eq (chroma-resolve-secondary (car pair) 'auto)
-                (cdr pair)))))
+    (let ((secondary (chroma-resolve-secondary (car pair) 'auto)))
+      (should (eq secondary (cdr pair)))
+      (should (eq (chroma-resolve-secondary secondary 'auto)
+                  (car pair))))))
 
 (ert-deftest chroma-core-explicit-secondary-wins ()
   "An explicit secondary hue overrides the automatic pairing."

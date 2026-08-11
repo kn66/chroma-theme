@@ -119,22 +119,22 @@
     (magit-diff-their-heading :foreground bg-main :background success)
     (magit-diff-context :foreground fg-secondary)
     (magit-diff-removed
-     :foreground primary-vivid :background error-muted)
+     :foreground primary-vivid :background primary-current-a)
     (magit-diff-added
-     :foreground secondary-vivid :background success-muted)
+     :foreground secondary-vivid :background secondary-current-b)
     (magit-diff-base
-     :foreground secondary-vivid :background warning-muted)
+     :foreground secondary-vivid :background magit-diff-base)
     (magit-diff-context-highlight
      :foreground fg-secondary :background bg-highlight)
     (magit-diff-removed-highlight
-     :foreground error-emphasis :background error-refinement)
+     :foreground primary-vivid :background magit-diff-removed-highlight)
     (magit-diff-added-highlight
-     :foreground success-emphasis :background success-refinement)
+     :foreground secondary-vivid :background magit-diff-added-highlight)
     (magit-diff-base-highlight
-     :foreground warning-emphasis :background warning-refinement)
-    (magit-diff-removed-indicator :foreground error-emphasis)
-    (magit-diff-added-indicator :foreground success-emphasis)
-    (magit-diff-base-indicator :foreground warning-emphasis)
+     :foreground secondary-vivid :background magit-diff-base-highlight)
+    (magit-diff-removed-indicator :foreground primary-vivid)
+    (magit-diff-added-indicator :foreground secondary-vivid)
+    (magit-diff-base-indicator :foreground secondary-vivid)
     (magit-diffstat-removed :foreground error)
     (magit-diffstat-added :foreground success)
 

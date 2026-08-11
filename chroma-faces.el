@@ -24,6 +24,11 @@
 ;; but a theme face spec cannot safely merge only that nested color with the
 ;; structural value owned by Emacs.  This release therefore leaves those
 ;; attributes entirely to their defining libraries.
+;;
+;; Emacs normally replaces a face's complete `defface' spec when any theme
+;; spec matches it.  Generated Chroma specs therefore inherit a private proxy
+;; of the upstream spec.  The mappings still own colors only; the proxy keeps
+;; upstream inheritance, inverse video, underlines, boxes, and other structure.
 
 ;;; Code:
 
@@ -44,14 +49,12 @@
     (shadow :foreground fg-muted)
     (link :foreground link)
     (link-visited :foreground visited-link)
-    (button :foreground link)
     (error :foreground error)
     (warning :foreground warning)
     (success :foreground success)
     (escape-glyph :foreground secondary-polarity-strong)
     (homoglyph :foreground secondary-polarity-strong)
     (nobreak-hyphen :foreground secondary-polarity-strong)
-    (nobreak-space :foreground secondary-polarity-strong)
     (trailing-whitespace :background error-alert))
   "Color mappings for fundamental Emacs faces.")
 
@@ -68,25 +71,19 @@
 
 (defconst chroma-face-mappings-ui
   '((mode-line :foreground fg-on-bright :background bg-mode-line)
-    (mode-line-active :foreground fg-on-bright :background bg-mode-line)
     (mode-line-inactive :foreground fg-main :background bg-panel)
     (header-line :foreground fg-main :background bg-panel)
     (minibuffer-prompt :foreground primary-emphasis)
-    (fringe :foreground fg-main :background bg-main)
+    (fringe :background bg-main)
     (window-divider :foreground window-divider)
     (window-divider-first-pixel :foreground border-leading)
     (window-divider-last-pixel :foreground border-trailing)
-    (line-number :foreground fg-muted :background bg-main)
     (line-number-major-tick :background bg-mode-line)
     (line-number-minor-tick :background bg-ui-inactive)
-    (hl-line :background primary-refinement)
-    (fill-column-indicator :foreground fg-fill-column)
     (tab-bar :foreground fg-on-bright :background bg-ui)
-    (tab-bar-tab-inactive
-     :foreground fg-on-bright :background bg-ui-inactive)
+    (tab-bar-tab-inactive :background bg-ui-inactive)
     (tab-line :foreground fg-on-bright :background bg-ui)
-    (tab-line-tab-inactive
-     :foreground fg-on-bright :background bg-ui-inactive)
+    (tab-line-tab-inactive :background bg-ui-inactive)
     (tab-line-highlight :foreground fg-on-bright :background bg-ui)
     (tab-line-close-highlight :foreground error))
   "Color mappings for built-in Emacs user-interface faces.")
@@ -102,37 +99,31 @@
     (isearch-group-2
      :foreground secondary-search-group-2-foreground
      :background secondary-search-group-2-background)
-    (query-replace :foreground bg-main :background search)
-    (show-paren-match :background secondary-refinement)
+    (show-paren-match :background paren-match)
     (show-paren-mismatch
      :foreground fg-fixed-light :background primary-fixed-dark))
   "Color mappings for search, match, and parenthesis faces.")
 
 (defconst chroma-face-mappings-completion
-  '((completions-annotations :foreground fg-dim)
-    (completions-common-part :foreground primary-emphasis)
+  '((completions-common-part :foreground primary-emphasis)
     (minibuffer-completion-active :background primary-muted))
   "Color mappings for built-in completion faces.")
 
 (defconst chroma-face-mappings-diagnostics
-  '((compilation-error :foreground error)
-    (compilation-warning :foreground warning)
-    (compilation-info :foreground info)
-    (compilation-mode-line-exit :foreground success)
+  '((compilation-mode-line-exit :foreground success)
     (compilation-mode-line-fail :foreground error))
   "Color mappings for built-in diagnostic faces.")
 
 (defconst chroma-face-mappings-diff
-  '((diff-added :background success-muted)
-    (diff-removed :background error-muted)
+  '((diff-added :background diff-added)
+    (diff-removed :background diff-removed)
     (diff-header :background bg-panel)
     (diff-file-header :background bg-ui-inactive)
-    (diff-hunk-header :background bg-panel)
     (diff-indicator-added :foreground secondary-indicator-added)
     (diff-indicator-removed :foreground primary-indicator-removed)
     (diff-indicator-changed :foreground secondary-changed-indicator)
-    (diff-refine-added :background success-refinement)
-    (diff-refine-removed :background primary-fine-a)
+    (diff-refine-added :background diff-refine-added)
+    (diff-refine-removed :background diff-refine-removed)
     (diff-refine-changed :background secondary-fine-c)
     (diff-error :foreground primary-alert :background bg-main))
   "Color mappings for built-in Diff mode faces.")
@@ -233,8 +224,8 @@
 (defconst chroma-face-mappings-misc
   '((blink-matching-paren-offscreen :foreground secondary-ansi-vivid)
     (elisp-shorthand-font-lock-face :foreground primary-ansi-vivid)
-    (pulse-highlight-face :background primary-refinement)
-    (pulse-highlight-start-face :background primary-refinement)
+    (pulse-highlight-face :background pulse)
+    (pulse-highlight-start-face :background pulse)
     (sh-heredoc :foreground secondary-ansi-vivid)
     (sh-quoted-exec :foreground primary-alert))
   "Color mappings for miscellaneous built-in chromatic faces.")
@@ -242,16 +233,6 @@
 (defconst chroma-face-mappings-tools
   '((dired-broken-symlink
      :foreground secondary-ansi-vivid :background primary-alert)
-    (dired-directory :foreground primary-emphasis)
-    (dired-flagged :foreground error)
-    (dired-header :foreground primary-status-success)
-    (dired-ignored :foreground fg-muted)
-    (dired-mark :foreground secondary-status-success)
-    (dired-marked :foreground primary-status-warning)
-    (dired-perm-write :foreground secondary)
-    (dired-set-id :foreground secondary-status-error)
-    (dired-special :foreground secondary-emphasis)
-    (dired-symlink :foreground primary-polarity-strong)
     (help-key-binding :foreground primary-emphasis :background bg-subtle)
     (info-menu-star :foreground primary-alert)
     (diary :foreground secondary-status-success)
@@ -295,11 +276,11 @@
 
 (defconst chroma-face-mappings-merge
   '((smerge-base :background secondary-current-c)
-    (smerge-lower :background success-muted)
+    (smerge-lower :background secondary-current-b)
     (smerge-markers :background bg-highlight)
     (smerge-refined-added :background secondary-fine-b)
     (smerge-refined-removed :background primary-fine-a)
-    (smerge-upper :background error-muted))
+    (smerge-upper :background primary-current-a))
   "Color mappings for Smerge conflict faces.")
 
 (defconst chroma-face-mappings-applications
@@ -316,8 +297,7 @@
     (eww-valid-certificate :foreground secondary-steady)
     (shr-mark :foreground fg-on-bright
               :background secondary-ansi-vivid)
-    (shr-selected-link
-     :foreground primary-selected-link :background error-alert)
+    (shr-selected-link :background error-alert)
     (speedbar-button-face :foreground secondary)
     (speedbar-directory-face :foreground primary-emphasis)
     (speedbar-file-face :foreground primary-status-success)
@@ -328,13 +308,24 @@
     (tty-menu-disabled-face
      :foreground fg-fixed-light-gray :background primary-ansi-low)
     (tty-menu-enabled-face :foreground bg-main :background primary)
-    (tty-menu-selected-face
-     :foreground fg-main :background secondary-alert))
+    (tty-menu-selected-face :background secondary-alert))
   "Color mappings for selected built-in application faces.")
 
 (defconst chroma--true-color-display
   '((class color) (min-colors 16777216))
   "Face display condition supported by the initial release.")
+
+(defun chroma--base-face-symbol (face)
+  "Return Chroma's private default-spec proxy for FACE."
+  (intern (concat "chroma--base-" (symbol-name face))))
+
+(defun chroma--ensure-base-face (face)
+  "Return a proxy face that retains FACE's upstream default spec."
+  (let ((base-face (chroma--base-face-symbol face))
+        (default-spec (copy-tree (get face 'face-defface-spec))))
+    (unless (equal (get base-face 'face-defface-spec) default-spec)
+      (face-spec-set base-face default-spec 'face-defface-spec))
+    base-face))
 
 (defun chroma-face-mappings ()
   "Return all Chroma face-to-semantic-role mappings."
@@ -387,11 +378,23 @@ adds mappings for built-in faces that are defined later."
            (lambda (mapping)
              (let ((face (car mapping)))
                (when (facep face)
-                 (list face
-                       (list
-                        (list chroma--true-color-display
-                              (chroma--resolve-face-attributes
-                               (cdr mapping) resolved-colors)))))))
+                 (let ((attributes
+                        (chroma--resolve-face-attributes
+                         (cdr mapping) resolved-colors)))
+                   ;; A matching theme spec replaces the upstream `defface'
+                   ;; spec instead of merging with it.  Inherit a private
+                   ;; proxy of that spec so Chroma can replace colors without
+                   ;; dropping structural attributes such as `:inverse-video',
+                   ;; `:underline', `:box', and `:inherit'.  `default' is
+                   ;; special: its font and geometry come from frame defaults.
+                   (unless (eq face 'default)
+                     (setq attributes
+                           (cons :inherit
+                                 (cons (chroma--ensure-base-face face)
+                                       attributes))))
+                   (list face
+                         (list
+                          (list chroma--true-color-display attributes)))))))
            (chroma-face-mappings)))))
 
 (provide 'chroma-faces)

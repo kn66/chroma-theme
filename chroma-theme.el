@@ -24,6 +24,7 @@
 
 (require 'chroma-core)
 (require 'chroma-faces)
+(require 'seq)
 
 ;;;###autoload
 (when load-file-name
@@ -45,15 +46,30 @@
 (defvar chroma-theme--refreshing nil
   "Non-nil while Chroma theme specs are being refreshed.")
 
+(defun chroma-theme--registered-faces ()
+  "Return faces currently recorded in Chroma's theme settings."
+  (let (faces)
+    (dolist (setting (get 'chroma 'theme-settings))
+      (when (eq (car setting) 'theme-face)
+        (push (cadr setting) faces)))
+    faces))
+
 (defun chroma-theme--set-faces (&optional immediate)
   "Register Chroma face specs, applying them when IMMEDIATE is non-nil."
-  (let ((settings (chroma-build-face-specs)))
+  (let* ((settings (chroma-build-face-specs))
+         (new-faces (mapcar #'car settings))
+         (stale-faces
+          (seq-difference (chroma-theme--registered-faces) new-faces)))
     ;; Keep color-scheme metadata synchronized for callers that inspect theme
     ;; properties.  The actual frame mode follows the explicit `default'
     ;; foreground and background applied below.
     (put 'chroma 'theme-properties
          (plist-put (copy-sequence (get 'chroma 'theme-properties))
                     :background-mode chroma-variant))
+    ;; Refresh can remove an obsolete direct mapping after an upstream audit.
+    ;; Drop such settings so the face resumes inheriting its standard parent.
+    (dolist (face stale-faces)
+      (custom-theme-reset-faces 'chroma (list face nil)))
     (apply #'custom-theme-set-faces
            'chroma
            (mapcar
@@ -61,7 +77,9 @@
               (if immediate
                   (append setting '(t))
                 setting))
-            settings))))
+            settings))
+    (when immediate
+      (mapc #'custom-theme-recalc-face stale-faces))))
 
 ;;;###autoload
 (defun chroma-theme-refresh ()

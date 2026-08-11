@@ -39,8 +39,10 @@
 (defcustom chroma-primary 'blue
   "Primary hue used by the Chroma semantic color roles."
   :type '(choice (const blue)
+                 (const azure)
                  (const cyan)
                  (const green)
+                 (const chartreuse)
                  (const yellow)
                  (const orange)
                  (const red)
@@ -50,11 +52,13 @@
   :group 'chroma)
 
 (defcustom chroma-secondary 'auto
-  "Secondary hue, or `auto' to use the author-defined pairing."
+  "Secondary hue, or `auto' to use the complementary pairing."
   :type '(choice (const :tag "Automatic" auto)
                  (const blue)
+                 (const azure)
                  (const cyan)
                  (const green)
+                 (const chartreuse)
                  (const yellow)
                  (const orange)
                  (const red)
@@ -99,6 +103,7 @@
     (primary-vivid primary vivid)
     (primary-selection primary selection)
     (primary-refinement primary refinement)
+    (pulse primary pulse)
     (primary-alert primary alert)
     (primary-ansi-low primary ansi-low)
     (primary-ansi-low-bright primary ansi-low-bright)
@@ -143,6 +148,7 @@
     (secondary-selection secondary selection)
     (alternate-selection secondary standalone-selection)
     (secondary-refinement secondary refinement)
+    (paren-match secondary paren-match)
     (secondary-alert secondary alert)
     (secondary-ansi-low secondary ansi-low)
     (secondary-ansi-low-bright secondary ansi-low-bright)
@@ -198,6 +204,14 @@
     (info primary emphasis)
     (info-emphasis primary emphasis)
     (info-muted primary muted)
+    (diff-removed primary diff-removed)
+    (diff-added secondary diff-added)
+    (diff-refine-removed primary diff-refine-removed)
+    (diff-refine-added secondary diff-refine-added)
+    (magit-diff-base secondary magit-base)
+    (magit-diff-removed-highlight primary magit-removed-highlight)
+    (magit-diff-added-highlight secondary magit-added-highlight)
+    (magit-diff-base-highlight secondary magit-base-highlight)
     (border neutral border)
     (border-subtle neutral border-subtle)
     (border-leading neutral border-leading)

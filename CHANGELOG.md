@@ -4,6 +4,24 @@ Notable changes to Chroma Theme are documented in this file.
 
 ## Unreleased
 
+- Replace the directional automatic Secondary choices with five reciprocal
+  OKLCH complementary axes.  Add complete Azure and Chartreuse palettes and
+  retune chromatic leaves to canonical hue angles while retaining their
+  source-relative lightness and chroma.  Contrast-critical status and Diff
+  indicator tones retain their WCAG relative luminance when an exact hue
+  change cannot preserve every metric simultaneously.
+- Match the perceptual strength of chromatic backgrounds to their upstream
+  faces.  Standard Diff, Ediff/Smerge, Pulse, matching parentheses, and
+  Magit's regular/current diff states now use source-specific finite tones
+  instead of sharing a more saturated generic refinement color.
+- Preserve complete upstream face structure through runtime proxy faces,
+  restoring Org Calendar's inverse-video selection, link underlines, mode-line
+  boxes, and other non-color attributes replaced by ordinary theme specs.
+- Remove individual color mappings from inherited-only standard faces across
+  mode/header-line children, the current line, completion, compilation, Diff,
+  Dired, SHR, and TTY menu; let their upstream parents remain authoritative.
+- Match the main dark and light backgrounds to the canonical Emacs default
+  colors, black and white.
 - Preserve source-relative contrast for Whitespace markers, Diff indicators,
   Ediff fine/current regions, status faces, fixed-lightness text, and neutral
   UI indicators across every selectable hue and both variants.

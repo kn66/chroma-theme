@@ -3,6 +3,7 @@
 ;;; Code:
 
 (require 'ert)
+(require 'cl-lib)
 (require 'chroma-faces)
 
 (defconst chroma-test--project-directory
@@ -119,7 +120,6 @@
              (mode-line-inactive :foreground fg-main
                                  :background bg-panel)
              (header-line :foreground fg-main :background bg-panel)
-             (hl-line :background primary-refinement)
              (minibuffer-prompt :foreground primary-emphasis)
              (match :background match)
              (lazy-highlight
@@ -129,13 +129,14 @@
                    (cdr expectation)))))
 
 (ert-deftest chroma-faces-hl-line-and-region-use-different-hues ()
-  "Current-line and region backgrounds use primary and secondary hues."
+  "Inherited current-line and region backgrounds use different hues."
+  (should-not (chroma-face-mapping 'hl-line))
   (dolist (variant chroma-supported-variants)
     (let* ((colors
             (chroma-resolve-semantic-colors 'blue 'orange variant))
            (hl-line
             (chroma--resolve-face-attributes
-             (chroma-face-mapping 'hl-line) colors))
+             (chroma-face-mapping 'highlight) colors))
            (region
             (chroma--resolve-face-attributes
              (chroma-face-mapping 'region) colors))
@@ -236,9 +237,20 @@
          (magit-branch-local :foreground primary-emphasis)
          (magit-branch-remote :foreground secondary)
          (magit-diff-removed :foreground primary-vivid
-                             :background error-muted)
+                             :background primary-current-a)
          (magit-diff-added :foreground secondary-vivid
-                           :background success-muted)
+                           :background secondary-current-b)
+         (magit-diff-base :foreground secondary-vivid
+                          :background magit-diff-base)
+         (magit-diff-removed-highlight
+          :foreground primary-vivid
+          :background magit-diff-removed-highlight)
+         (magit-diff-added-highlight
+          :foreground secondary-vivid
+          :background magit-diff-added-highlight)
+         (magit-diff-base-highlight
+          :foreground secondary-vivid
+          :background magit-diff-base-highlight)
          (magit-diff-lines-heading :foreground bg-main
                                    :background primary)
          (magit-process-ok :foreground success-emphasis)
@@ -261,13 +273,18 @@
          font-lock-preprocessor-face font-lock-property-name-face
          font-lock-property-use-face font-lock-regexp-face
          font-lock-variable-use-face font-lock-warning-face
-         mode-line-emphasis mode-line-highlight header-line-highlight
+         button nobreak-space mode-line-active mode-line-emphasis
+         mode-line-highlight header-line-highlight line-number
+         hl-line fill-column-indicator
          help-argument-name calendar-today info-menu-header
-         info-title-1 info-title-2
-         show-paren-match-expression completions-highlight
-         completions-first-difference compilation-line-number
-         compilation-column-number line-number-current-line
-         tab-bar-tab tab-line-tab-current))
+         show-paren-match-expression query-replace
+         completions-annotations completions-highlight
+         completions-first-difference compilation-error
+         compilation-warning compilation-info compilation-line-number
+         compilation-column-number diff-hunk-header line-number-current-line
+         dired-directory dired-flagged dired-header dired-ignored
+         dired-mark dired-marked dired-perm-write dired-set-id
+         dired-special dired-symlink tab-bar-tab tab-line-tab-current))
     (should-not (chroma-face-mapping face))))
 
 (ert-deftest chroma-faces-colorless-standard-faces-remain-unmapped ()
@@ -281,14 +298,65 @@
          vertical-border internal-border child-frame-border))
     (should-not (chroma-face-mapping face))))
 
+(ert-deftest chroma-faces-built-in-mappings-match-upstream-color-attributes ()
+  "Built-in mappings replace all and only directly specified colors."
+  (dolist
+      (library
+       '(tab-bar tab-line hl-line display-line-numbers isearch replace
+         paren compile diff-mode ediff ansi-color cus-edit wid-edit org
+         pulse sh-script dired help-mode info calendar whitespace message
+         smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm))
+    (require library nil t))
+  (let ((external-faces (mapcar #'car (chroma-external-face-mappings)))
+        (old-display-type (frame-parameter nil 'display-type))
+        (old-background-mode (frame-parameter nil 'background-mode)))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-color-cells)
+                   (lambda (&optional _frame) 16777216))
+                  ((symbol-function 'window-system)
+                   (lambda (&optional _frame) 'pgtk)))
+          (dolist (mapping (chroma-face-mappings))
+            (let ((face (car mapping)))
+              (when (and (facep face)
+                         (not (eq face 'default))
+                         (not (memq face external-faces)))
+                (let (default-color-attributes)
+                  (dolist (mode '(light dark))
+                    (modify-frame-parameters
+                     nil (list (cons 'display-type 'color)
+                               (cons 'background-mode mode)))
+                    (let ((attributes
+                           (face-spec-choose
+                            (get face 'face-defface-spec))))
+                      (dolist (attribute chroma-face-color-attributes)
+                        (when (and (plist-member attributes attribute)
+                                   (not (eq (plist-get attributes attribute)
+                                            'unspecified)))
+                          (cl-pushnew attribute
+                                      default-color-attributes)))))
+                  (let ((mapped-attributes
+                         (cl-loop for (attribute _role) on (cdr mapping)
+                                  by #'cddr collect attribute)))
+                    (should
+                     (equal (sort mapped-attributes
+                                  (lambda (first second)
+                                    (string< (symbol-name first)
+                                             (symbol-name second))))
+                            (sort default-color-attributes
+                                  (lambda (first second)
+                                    (string< (symbol-name first)
+                                             (symbol-name second))))))))))))
+      (modify-frame-parameters
+       nil (list (cons 'display-type old-display-type)
+                 (cons 'background-mode old-background-mode))))))
+
 (ert-deftest chroma-faces-source-relative-regressions-use-dedicated-roles ()
   "High-risk faces use roles matching their standard prominence."
   (dolist
       (expectation
        '((org-mode-line-clock-overrun :background error-alert)
-         (fringe :foreground fg-main :background bg-main)
+         (fringe :background bg-main)
          (window-divider :foreground window-divider)
-         (fill-column-indicator :foreground fg-fill-column)
          (diff-indicator-added :foreground secondary-indicator-added)
          (diff-indicator-removed :foreground primary-indicator-removed)
          (diff-indicator-changed
@@ -302,8 +370,7 @@
          (whitespace-big-indent
           :foreground primary-whitespace-big-foreground
           :background primary-alert)
-         (shr-selected-link
-          :foreground primary-selected-link :background error-alert)))
+         (shr-selected-link :background error-alert)))
     (should (equal (chroma-face-mapping (car expectation))
                    (cdr expectation)))))
 
@@ -421,7 +488,7 @@
           (chroma-palette-color 'purple 'refinement variant))
          (secondary-selection
           (chroma-palette-color
-           'cyan 'standalone-selection variant)))
+           'chartreuse 'standalone-selection variant)))
     (should
      (equal
       (plist-get
@@ -492,12 +559,12 @@
        (null (plist-get added :foreground)))
       (should
        (equal (plist-get added :background)
-              (chroma-palette-color 'orange 'muted variant)))
+              (chroma-palette-color 'orange 'diff-added variant)))
       (should
        (null (plist-get removed :foreground)))
       (should
        (equal (plist-get removed :background)
-              (chroma-palette-color 'blue 'muted variant)))))
+              (chroma-palette-color 'blue 'diff-removed variant)))))
   ;; The standard `diff-changed' face has no color of its own.  Refined and
   ;; indicator faces retain the standard changed-state color distinction.
   (should-not (chroma-face-mapping 'diff-changed))
@@ -511,8 +578,9 @@
    (equal (chroma-face-mapping 'diff-removed)
           (chroma-face-mapping 'diff-refine-removed))))
 
-(ert-deftest chroma-faces-generated-specs-contain-only-color-attributes ()
-  "Generated theme specs preserve the color-only mapping invariant."
+(ert-deftest chroma-faces-generated-specs-inherit-upstream-structure ()
+  "Generated specs add only colors and an upstream structural proxy."
+  (require 'org)
   (dolist (variant chroma-supported-variants)
     (let ((colors
            (chroma-resolve-semantic-colors nil nil variant)))
@@ -520,16 +588,48 @@
         (dolist (display-spec (cadr setting))
           (let ((attributes (cadr display-spec)))
             (while attributes
-              (should
-               (memq (pop attributes) chroma-face-color-attributes))
-              (should (stringp (pop attributes))))))))))
+              (let ((attribute (pop attributes))
+                    (value (pop attributes)))
+                (if (eq attribute :inherit)
+                    (progn
+                      (should-not (eq (car setting) 'default))
+                      (should
+                       (eq value
+                           (chroma--base-face-symbol (car setting))))
+                      (should
+                       (equal (get value 'face-defface-spec)
+                              (get (car setting) 'face-defface-spec))))
+                  (should
+                   (memq attribute chroma-face-color-attributes))
+                  (should (stringp value))))))))))
+  (let ((old-display-type (frame-parameter nil 'display-type))
+        (old-background-mode (frame-parameter nil 'background-mode))
+        (base-face (chroma--base-face-symbol 'org-date-selected)))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-color-cells)
+                   (lambda (&optional _frame) 16777216))
+                  ((symbol-function 'window-system)
+                   (lambda (&optional _frame) 'pgtk)))
+          (modify-frame-parameters
+           nil '((display-type . color) (background-mode . light)))
+          (chroma-build-face-specs)
+          (should
+           (eq (plist-get
+                (face-spec-choose (get base-face 'face-defface-spec))
+                :inverse-video)
+               t)))
+      (modify-frame-parameters
+       nil (list (cons 'display-type old-display-type)
+                 (cons 'background-mode old-background-mode))))))
 
 (ert-deftest chroma-faces-theme-preserves-non-color-attributes ()
   "Enabling Chroma leaves representative structural attributes intact."
-  (let* ((faces '(default link mode-line font-lock-keyword-face))
+  (require 'org)
+  (let* ((faces '(default region link mode-line font-lock-keyword-face
+                  org-date-selected))
          (attributes '(:family :foundry :width :height :weight :slant
                        :underline :overline :strike-through :box
-                       :inverse-video :stipple :extend :inherit))
+                       :inverse-video :stipple :extend))
          (was-enabled (memq 'chroma custom-enabled-themes))
          (before
           (mapcar
@@ -537,7 +637,7 @@
              (cons face
                    (mapcar (lambda (attribute)
                              (cons attribute
-                                   (face-attribute face attribute nil nil)))
+                                   (face-attribute face attribute nil t)))
                            attributes)))
            faces)))
     (unwind-protect
@@ -549,7 +649,7 @@
               (should
                (equal (cdr attribute-entry)
                       (face-attribute (car face-entry)
-                                      (car attribute-entry) nil nil))))))
+                                      (car attribute-entry) nil t))))))
       (unless was-enabled
         (disable-theme 'chroma)))))
 
@@ -577,7 +677,7 @@
                    (chroma-test--theme-foreground
                     'font-lock-keyword-face)
                    (chroma-palette-color 'red 'vivid)))
-          (should (eq (chroma-resolve-secondary) 'green)))
+          (should (eq (chroma-resolve-secondary) 'cyan)))
       (unless was-enabled
         (disable-theme 'chroma))
       (set-default 'chroma-primary old-primary)
