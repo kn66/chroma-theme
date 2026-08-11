@@ -12,6 +12,30 @@
 (defconst chroma-test-enhanced-text-contrast 7.0
   "Preferred WCAG contrast ratio for Chroma's main text.")
 
+(defconst chroma-test--source-relative-background-references
+  '((selection "#0000cd" "#eedc82")
+    (standalone-selection "#4a708b" "#ffff00")
+    (refinement "#556b2f" "#b4eeb4")
+    (paren-match "#4f94cd" "#40e0d0")
+    (pulse "#aaaa33" "#ffffaa")
+    (diff-added "#335533" "#eeffee")
+    (diff-removed "#553333" "#ffeeee")
+    (diff-refine-added "#22aa22" "#bbffbb")
+    (diff-refine-removed "#aa2222" "#ffcccc")
+    (magit-base "#555522" "#ffffcc")
+    (magit-removed-highlight "#663333" "#eecccc")
+    (magit-added-highlight "#336633" "#cceecc")
+    (magit-base-highlight "#666622" "#eeeebb")
+    (fine-a "#aa2222" "#ffbbbb")
+    (fine-ancestor "#009591" "#00c5c0")
+    (fine-b "#22aa22" "#aaffaa")
+    (fine-c "#aaaa22" "#ffff55")
+    (current-a "#553333" "#ffdddd")
+    (current-ancestor "#004151" "#cfdeee")
+    (current-b "#335533" "#ddffdd")
+    (current-c "#888833" "#ffffaa"))
+  "Dark and light upstream colors for source-relative backgrounds.")
+
 (defun chroma-test--hex-channel (color offset)
   "Read a normalized RGB channel from COLOR at OFFSET."
   (/ (string-to-number (substring color offset (+ offset 2)) 16) 255.0))
@@ -84,6 +108,46 @@
 (defun chroma-test--hue-distance (first second)
   "Return the shortest distance in degrees between FIRST and SECOND."
   (abs (- (mod (+ (- first second) 180.0) 360.0) 180.0)))
+
+(defun chroma-test--oklch-linear-srgb (lightness chroma hue)
+  "Return linear sRGB for an OKLCH LIGHTNESS, CHROMA, and HUE."
+  (let* ((radians (* float-pi (/ hue 180.0)))
+         (aa (* chroma (cos radians)))
+         (bb (* chroma (sin radians)))
+         (ll (+ lightness (* 0.3963377774 aa) (* 0.2158037573 bb)))
+         (mm (- lightness (* 0.1055613458 aa) (* 0.0638541728 bb)))
+         (ss (- lightness (* 0.0894841775 aa) (* 1.2914855480 bb)))
+         (l-cube (* ll ll ll))
+         (m-cube (* mm mm mm))
+         (s-cube (* ss ss ss)))
+    (list (+ (* 4.0767416621 l-cube) (* -3.3077115913 m-cube)
+             (* 0.2309699292 s-cube))
+          (+ (* -1.2684380046 l-cube) (* 2.6097574011 m-cube)
+             (* -0.3413193965 s-cube))
+          (+ (* -0.0041960863 l-cube) (* -0.7034186147 m-cube)
+             (* 1.7076147010 s-cube)))))
+
+(defun chroma-test--oklch-in-srgb-p (lightness chroma hue)
+  "Return non-nil when the OKLCH color LIGHTNESS CHROMA HUE is in sRGB."
+  (catch 'outside
+    (dolist (channel
+             (chroma-test--oklch-linear-srgb lightness chroma hue))
+      (unless (and (>= channel 0.0) (<= channel 1.0))
+        (throw 'outside nil)))
+    t))
+
+(defun chroma-test--maximum-in-gamut-chroma (lightness chroma hue)
+  "Return CHROMA, reduced only enough to fit LIGHTNESS and HUE in sRGB."
+  (if (chroma-test--oklch-in-srgb-p lightness chroma hue)
+      chroma
+    (let ((low 0.0)
+          (high chroma))
+      (dotimes (_ 60)
+        (let ((middle (/ (+ low high) 2.0)))
+          (if (chroma-test--oklch-in-srgb-p lightness middle hue)
+              (setq low middle)
+            (setq high middle))))
+      low)))
 
 (defun chroma-test--should-meet-contrast (first second minimum)
   "Assert that FIRST and SECOND meet contrast ratio MINIMUM."
@@ -310,29 +374,9 @@
            (> (chroma-test--oklab-chroma refinement)
               (chroma-test--oklab-chroma muted))))))))
 
-(ert-deftest chroma-contrast-background-tones-match-source-strength ()
-  "Source-relative backgrounds preserve lightness without excess chroma."
-  (dolist
-      (expectation
-       '((refinement "#556b2f" "#b4eeb4")
-         (paren-match "#4f94cd" "#40e0d0")
-         (pulse "#aaaa33" "#ffffaa")
-         (diff-added "#335533" "#eeffee")
-         (diff-removed "#553333" "#ffeeee")
-         (diff-refine-added "#22aa22" "#bbffbb")
-         (diff-refine-removed "#aa2222" "#ffcccc")
-         (magit-base "#555522" "#ffffcc")
-         (magit-removed-highlight "#663333" "#eecccc")
-         (magit-added-highlight "#336633" "#cceecc")
-         (magit-base-highlight "#666622" "#eeeebb")
-         (fine-a "#aa2222" "#ffbbbb")
-         (fine-ancestor "#009591" "#00c5c0")
-         (fine-b "#22aa22" "#aaffaa")
-         (fine-c "#aaaa22" "#ffff55")
-         (current-a "#553333" "#ffdddd")
-         (current-ancestor "#004151" "#cfdeee")
-         (current-b "#335533" "#ddffdd")
-         (current-c "#888833" "#ffffaa")))
+(ert-deftest chroma-contrast-background-tones-match-source-gamut-target ()
+  "Source-relative backgrounds preserve the closest in-gamut OKLCH color."
+  (dolist (expectation chroma-test--source-relative-background-references)
     (dolist (variant chroma-supported-variants)
       (let* ((reference
               (nth (if (eq variant 'dark) 1 2) expectation))
@@ -341,18 +385,27 @@
              (reference-chroma
               (chroma-test--oklab-chroma reference)))
         (dolist (hue chroma-supported-hues)
-          (let ((color
-                 (chroma-palette-color
-                  hue (car expectation) variant)))
-            ;; Gamut mapping preserves source lightness and only reduces
-            ;; chroma when the selected hue cannot fit in sRGB at that level.
+          (let* ((target-hue (alist-get hue chroma-hue-angles))
+                 (target-radians (* float-pi (/ target-hue 180.0)))
+                 (target-chroma
+                  (chroma-test--maximum-in-gamut-chroma
+                   reference-lightness reference-chroma target-hue))
+                 (target-a (* target-chroma (cos target-radians)))
+                 (target-b (* target-chroma (sin target-radians)))
+                 (color
+                  (chroma-palette-color hue (car expectation) variant))
+                 (actual (chroma-test--oklab color))
+                 (actual-radians
+                  (* float-pi (/ (nth 2 actual) 180.0)))
+                 (actual-a (* (nth 1 actual) (cos actual-radians)))
+                 (actual-b (* (nth 1 actual) (sin actual-radians))))
             (should
-             (< (abs (- (chroma-test--oklab-lightness color)
-                        reference-lightness))
+             (< (abs (- (nth 0 actual) reference-lightness))
                 0.004))
             (should
-             (<= (chroma-test--oklab-chroma color)
-                 (+ reference-chroma 0.004)))))))))
+             (< (sqrt (+ (expt (- actual-a target-a) 2)
+                         (expt (- actual-b target-b) 2)))
+                0.004))))))))
 
 (ert-deftest chroma-contrast-vivid-tone-preserves-standard-syntax-levels ()
   "Vivid syntax is very bright on dark and moderately dark on light."

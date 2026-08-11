@@ -4,6 +4,10 @@ Notable changes to Chroma Theme are documented in this file.
 
 ## Unreleased
 
+- Fix source-relative backgrounds whose gamut handling could reuse the
+  complementary hue or discard more chroma than sRGB requires.
+  Purple with automatic Chartreuse now renders Magit additions as Chartreuse,
+  and every affected hue is checked against its closest in-gamut OKLCH target.
 - Replace the directional automatic Secondary choices with five reciprocal
   OKLCH complementary axes.  Add complete Azure and Chartreuse palettes and
   retune chromatic leaves to canonical hue angles while retaining their

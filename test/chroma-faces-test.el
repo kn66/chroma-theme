@@ -512,6 +512,27 @@
       :foreground)
       primary))))
 
+(ert-deftest chroma-faces-purple-auto-magit-added-is-chartreuse ()
+  "Purple with automatic Secondary gives Magit additions Chartreuse colors."
+  (let* ((variant 'light)
+         (colors
+          (chroma-resolve-semantic-colors 'purple 'auto variant))
+         (added
+          (chroma--resolve-face-attributes
+           (chroma-face-mapping 'magit-diff-added) colors))
+         (removed
+          (chroma--resolve-face-attributes
+           (chroma-face-mapping 'magit-diff-removed) colors))
+         (chartreuse-background
+          (chroma-palette-color 'chartreuse 'current-b variant))
+         (purple-background
+          (chroma-palette-color 'purple 'current-a variant)))
+    (should (equal (plist-get added :foreground)
+                   (chroma-palette-color 'chartreuse 'vivid variant)))
+    (should (equal (plist-get added :background) chartreuse-background))
+    (should (equal (plist-get removed :background) purple-background))
+    (should-not (equal chartreuse-background purple-background))))
+
 (ert-deftest chroma-faces-primary-hue-is-dominant ()
   "Primary supplies at least 55 percent of chromatic mapping attributes."
   (let ((primary-count 0)
