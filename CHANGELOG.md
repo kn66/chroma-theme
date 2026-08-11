@@ -4,6 +4,18 @@ Notable changes to Chroma Theme are documented in this file.
 
 ## Unreleased
 
+- Raise the minimum supported Emacs version to 30.1 and reverse-audit Emacs 30
+  built-in faces under a true-color display model.  Add the omitted direct
+  colors for UI, ANSI, Customize, Widget, Org, Info, Message, Gnus, EWW, Ediff,
+  Diff, and ERT faces while leaving inherited-only faces package-owned.
+- Test the real, commit-pinned face definitions from Avy 0.5.0, Corfu 2.10,
+  diff-hl 1.10.0, Magit 4.6.0, Tempel 1.14, Transient 0.13.5, and Vundo 2.4.0.
+  Complete the previously omitted Corfu indexed/quick, Transient no-op, and
+  Vundo diff-highlight mappings without adding runtime dependencies.
+- Verify every direct foreground/background pair for all 10×10 Primary and
+  Secondary choices in both variants.  Add source-specific finite tones for
+  search, Customize, Org, Help, Whitespace, Avy, Corfu, diff-hl, Tempel,
+  Transient, and Magit so their WCAG ratios remain within 0.12 of upstream.
 - Fix source-relative backgrounds whose gamut handling could reuse the
   complementary hue or discard more chroma than sRGB requires.
   Purple with automatic Chartreuse now renders Magit additions as Chartreuse,

@@ -11,6 +11,18 @@
                            (or load-file-name buffer-file-name)))
   "Chroma project directory used by theme-loading tests.")
 
+(defconst chroma-test--audited-built-in-libraries
+  '(tab-bar tab-line hl-line display-line-numbers isearch replace
+    paren compile diff-mode ediff ansi-color cus-edit wid-edit org
+    pulse sh-script dired help-mode info calendar whitespace message
+    smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
+  "Built-in libraries included in Chroma's reverse face audit.")
+
+(defun chroma-test--load-audited-built-ins ()
+  "Load all libraries included in the built-in face audit."
+  (dolist (library chroma-test--audited-built-in-libraries)
+    (require library nil t)))
+
 (require 'chroma-theme)
 
 (defun chroma-test--theme-attribute (face attribute)
@@ -115,16 +127,22 @@
              (font-lock-string-face :foreground secondary-emphasis)
              (font-lock-type-face :foreground primary-vivid)
              (font-lock-variable-name-face :foreground secondary-vivid)
-             (mode-line :foreground fg-on-bright
-                        :background bg-mode-line)
-             (mode-line-inactive :foreground fg-main
-                                 :background bg-panel)
-             (header-line :foreground fg-main :background bg-panel)
+             (mode-line
+              :foreground mode-line-source-foreground
+              :background mode-line-source-background)
+             (mode-line-inactive
+              :foreground mode-line-inactive-foreground
+              :background mode-line-inactive-background)
+             (header-line
+              :foreground header-line-source-foreground
+              :background header-line-source-background)
              (minibuffer-prompt :foreground primary-emphasis)
              (match :background match)
              (lazy-highlight
               :background alternate-selection)
-             (isearch :foreground bg-main :background search)))
+             (isearch
+              :foreground isearch-foreground
+              :background isearch-background)))
     (should (equal (chroma-face-mapping (car expectation))
                    (cdr expectation)))))
 
@@ -214,45 +232,66 @@
           '(avy corfu diff-hl magit tempel transient vundo)))
   (dolist
       (expectation
-       '((corfu-current :foreground fg-main :background primary-muted)
+       '((corfu-current
+          :foreground corfu-current-foreground
+          :background corfu-current-background)
+         (corfu-indexed
+          :foreground corfu-indexed-foreground
+          :background corfu-indexed-background)
+         (corfu-quick1
+          :foreground corfu-quick-foreground
+          :background corfu-quick-1-background)
+         (corfu-quick2
+          :foreground corfu-quick-foreground
+          :background corfu-quick-2-background)
          (diff-hl-insert :foreground success-emphasis)
          (diff-hl-delete :foreground error-emphasis)
-         (diff-hl-change :foreground warning-emphasis
-                         :background warning-muted)
-         (tempel-field :foreground fg-main
-                       :background primary-muted)
-         (tempel-form :foreground fg-main
-                      :background secondary-muted)
-         (avy-lead-face :foreground bg-main :background primary)
-         (avy-lead-face-2 :foreground bg-main :background secondary)
+         (diff-hl-change
+          :foreground diff-hl-change-foreground
+          :background diff-hl-change-background)
+         (tempel-field
+          :foreground tempel-field-foreground
+          :background tempel-field-background)
+         (tempel-form
+          :foreground tempel-form-foreground
+          :background tempel-form-background)
+         (avy-lead-face
+          :foreground fixed-white :background avy-lead-background)
+         (avy-lead-face-2
+          :foreground fixed-white :background avy-lead-2-background)
          (vundo-highlight :foreground primary-emphasis)
          (vundo-saved :foreground secondary)
+         (vundo-diff-highlight :foreground vundo-diff-highlight)
          (transient-disabled-suffix
-          :foreground fg-on-bright :background error-alert)
+          :foreground fixed-black
+          :background transient-disabled-background)
          (transient-enabled-suffix
-          :foreground fg-on-bright :background secondary-ansi-vivid)
+          :foreground fixed-black
+          :background transient-enabled-background)
+         (transient-key-noop :foreground transient-key-noop)
          (transient-key-exit :foreground error-emphasis)
          (transient-key-stay :foreground secondary-polarity)
          (magit-section-heading :foreground primary-emphasis)
          (magit-branch-local :foreground primary-emphasis)
          (magit-branch-remote :foreground secondary)
-         (magit-diff-removed :foreground primary-vivid
-                             :background primary-current-a)
-         (magit-diff-added :foreground secondary-vivid
-                           :background secondary-current-b)
-         (magit-diff-base :foreground secondary-vivid
-                          :background magit-diff-base)
+         (magit-diff-removed
+          :foreground magit-red-pale :background magit-red-deep)
+         (magit-diff-added
+          :foreground magit-green-pale :background magit-green-deep)
+         (magit-diff-base
+          :foreground magit-base-pale :background magit-base-deep)
          (magit-diff-removed-highlight
-          :foreground primary-vivid
-          :background magit-diff-removed-highlight)
+          :foreground magit-red-highlight-foreground
+          :background magit-red-highlight-background)
          (magit-diff-added-highlight
-          :foreground secondary-vivid
-          :background magit-diff-added-highlight)
+          :foreground magit-green-highlight-foreground
+          :background magit-green-highlight-background)
          (magit-diff-base-highlight
-          :foreground secondary-vivid
-          :background magit-diff-base-highlight)
-         (magit-diff-lines-heading :foreground bg-main
-                                   :background primary)
+          :foreground magit-base-highlight-foreground
+          :background magit-base-highlight-background)
+         (magit-diff-lines-heading
+          :foreground ((dark . magit-lines-foreground))
+          :background magit-lines-background)
          (magit-process-ok :foreground success-emphasis)
          (magit-process-ng :foreground error-emphasis)))
     (should (equal (chroma-face-mapping (car expectation))
@@ -284,7 +323,7 @@
          compilation-column-number diff-hunk-header line-number-current-line
          dired-directory dired-flagged dired-header dired-ignored
          dired-mark dired-marked dired-perm-write dired-set-id
-         dired-special dired-symlink tab-bar-tab tab-line-tab-current))
+         dired-special dired-symlink tab-bar-tab))
     (should-not (chroma-face-mapping face))))
 
 (ert-deftest chroma-faces-colorless-standard-faces-remain-unmapped ()
@@ -300,13 +339,7 @@
 
 (ert-deftest chroma-faces-built-in-mappings-match-upstream-color-attributes ()
   "Built-in mappings replace all and only directly specified colors."
-  (dolist
-      (library
-       '(tab-bar tab-line hl-line display-line-numbers isearch replace
-         paren compile diff-mode ediff ansi-color cus-edit wid-edit org
-         pulse sh-script dired help-mode info calendar whitespace message
-         smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm))
-    (require library nil t))
+  (chroma-test--load-audited-built-ins)
   (let ((external-faces (mapcar #'car (chroma-external-face-mappings)))
         (old-display-type (frame-parameter nil 'display-type))
         (old-background-mode (frame-parameter nil 'background-mode)))
@@ -350,6 +383,40 @@
        nil (list (cons 'display-type old-display-type)
                  (cons 'background-mode old-background-mode))))))
 
+(ert-deftest chroma-faces-all-direct-built-in-colors-are-mapped ()
+  "Every loaded built-in face with a direct simple color is mapped."
+  (chroma-test--load-audited-built-ins)
+  (let ((old-display-type (frame-parameter nil 'display-type))
+        (old-background-mode (frame-parameter nil 'background-mode))
+        (mapped-faces (mapcar #'car (chroma-face-mappings)))
+        (audited-count 0))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-color-cells)
+                   (lambda (&optional _frame) 16777216))
+                  ((symbol-function 'window-system)
+                   (lambda (&optional _frame) 'pgtk)))
+          (dolist (face (face-list))
+            (unless (string-prefix-p "chroma--base-" (symbol-name face))
+              (let (direct-color-p)
+                (dolist (mode '(light dark))
+                  (modify-frame-parameters
+                   nil (list (cons 'display-type 'color)
+                             (cons 'background-mode mode)))
+                  (let ((attributes
+                         (face-spec-choose
+                          (get face 'face-defface-spec))))
+                    (dolist (attribute chroma-face-color-attributes)
+                      (when (stringp (plist-get attributes attribute))
+                        (setq direct-color-p t)))))
+                (when direct-color-p
+                  (setq audited-count (1+ audited-count))
+                  (should (memq face mapped-faces)))))))
+      (modify-frame-parameters
+       nil (list (cons 'display-type old-display-type)
+                 (cons 'background-mode old-background-mode))))
+    ;; Guard against accidentally running the audit before its libraries load.
+    (should (> audited-count 220))))
+
 (ert-deftest chroma-faces-source-relative-regressions-use-dedicated-roles ()
   "High-risk faces use roles matching their standard prominence."
   (dolist
@@ -366,11 +433,95 @@
          (ediff-fine-diff-B :background secondary-fine-b)
          (ediff-fine-diff-C :background secondary-fine-c)
          (whitespace-hspace
-          :foreground fg-fixed-gray :background secondary-muted)
+          :foreground fg-fixed-gray
+          :background whitespace-hspace-background)
          (whitespace-big-indent
           :foreground primary-whitespace-big-foreground
           :background primary-alert)
          (shr-selected-link :background error-alert)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation)))))
+
+(ert-deftest chroma-faces-newly-audited-colors-use-exact-roles ()
+  "New reverse-audited faces map all and only their direct colors."
+  (dolist
+      (expectation
+       '((ert-test-result-expected :background ert-expected)
+         (ert-test-result-unexpected :background ert-unexpected)
+         (tab-line-tab-current :background bg-tab-current)
+         (tab-line-tab-inactive-alternate
+          :background bg-tab-inactive-alternate)
+         (separator-line :background bg-separator)
+         (tool-bar :foreground fixed-black :background bg-tool-bar)
+         (tooltip :foreground fixed-black :background bg-tooltip)
+         (icon-button
+          :foreground fixed-black :background bg-fixed-gray-80)
+         (diff-changed-unspecified
+          :background bg-diff-changed-unspecified)
+         (ediff-even-diff-A :background bg-ediff-light)
+         (ediff-even-diff-Ancestor :background bg-ediff-mid)
+         (ediff-even-diff-B :background bg-ediff-mid)
+         (ediff-even-diff-C :background bg-ediff-light)
+         (ediff-odd-diff-A :background bg-ediff-mid)
+         (ediff-odd-diff-Ancestor :background bg-fixed-gray-40)
+         (ediff-odd-diff-B :background bg-ediff-light)
+         (ediff-odd-diff-C :background bg-ediff-mid)
+         (ansi-color-black
+          :foreground ansi-black :background ansi-black)
+         (ansi-color-bright-black
+          :foreground ansi-bright-black :background ansi-bright-black)
+         (ansi-color-white
+          :foreground ansi-white :background ansi-white)
+         (ansi-color-bright-white
+          :foreground ansi-bright-white :background ansi-bright-white)
+         (custom-button
+          :foreground fixed-black :background bg-fixed-light-gray)
+         (custom-button-mouse
+          :foreground fixed-black :background bg-fixed-gray-90)
+         (custom-button-pressed
+          :foreground fixed-black :background bg-fixed-light-gray)
+         (custom-comment :background bg-input)
+         (widget-field :background bg-input)
+         (widget-single-line-field :background bg-input)
+         (org-agenda-dimmed-todo-face :foreground fg-fixed-gray-50)
+         (org-column :background bg-org-column)
+         (org-column-title :background bg-org-column)
+         (org-hide :foreground bg-main)
+         (org-table-header
+          :foreground fixed-black :background bg-fixed-light-gray)
+         (info-node :foreground info-node)
+         (message-cited-text-1 :foreground message-cited-1)
+         (message-cited-text-2 :foreground message-cited-2)
+         (message-cited-text-3 :foreground message-cited-3)
+         (message-cited-text-4 :foreground message-cited-4)
+         (mm-command-output :foreground message-command-output)
+         (gnus-group-mail-1-empty :foreground gnus-mail-1-empty)
+         (gnus-group-mail-2-empty :foreground gnus-mail-2-empty)
+         (gnus-group-mail-3-empty :foreground gnus-mail-3-empty)
+         (gnus-group-mail-low-empty :foreground gnus-mail-low-empty)
+         (gnus-group-news-1-empty :foreground gnus-news-1-empty)
+         (gnus-group-news-2-empty :foreground gnus-news-2-empty)
+         (gnus-group-news-low-empty :foreground gnus-news-low-empty)
+         (gnus-splash :foreground fg-gnus-splash)
+         (gnus-summary-cancelled
+          :foreground gnus-summary-cancelled :background fixed-black)
+         (gnus-summary-normal-ancient :foreground gnus-summary-ancient)
+         (gnus-summary-normal-read :foreground gnus-summary-read)
+         (gnus-summary-normal-ticked :foreground gnus-summary-ticked)
+         (gnus-summary-normal-undownloaded
+          :foreground gnus-summary-undownloaded)
+         (eww-form-checkbox
+          :foreground fixed-black :background bg-fixed-light-gray)
+         (eww-form-file
+          :foreground fixed-black :background bg-fixed-gray-80)
+         (eww-form-select
+          :foreground fixed-black :background bg-fixed-light-gray)
+         (eww-form-submit
+          :foreground fixed-black :background bg-fixed-gray-80)
+         (eww-form-text
+          :foreground fg-fixed-light :background bg-fixed-gray-50)
+         (eww-form-textarea
+          :foreground fixed-black :background bg-fixed-gray-192)))
     (should (equal (chroma-face-mapping (car expectation))
                    (cdr expectation)))))
 
@@ -384,22 +535,27 @@
           :foreground secondary-ansi-high
           :background secondary-ansi-high)
          (dired-broken-symlink
-          :foreground secondary-ansi-vivid :background primary-alert)
+          :foreground contrast-yellow-1 :background contrast-red-1)
          (help-key-binding
-          :foreground primary-emphasis :background bg-subtle)
+          :foreground help-key-foreground :background help-key-background)
          (holiday :background warning-muted)
          (line-number-major-tick :background bg-mode-line)
          (line-number-minor-tick :background bg-ui-inactive)
-         (tab-line-highlight :foreground fg-on-bright :background bg-ui)
+         (tab-line-highlight
+          :foreground tab-source-foreground
+          :background tab-source-background)
          (whitespace-space
-          :foreground fg-fixed-gray :background secondary-muted)
+          :foreground fg-fixed-gray
+          :background whitespace-space-background)
          (whitespace-tab
-          :foreground fg-fixed-gray :background secondary-muted)
+          :foreground fg-fixed-gray
+          :background whitespace-tab-background)
          (whitespace-space-after-tab
-          :foreground primary-fixed-dark
-          :background secondary-ansi-vivid)
+          :foreground contrast-firebrick
+          :background contrast-yellow-1)
          (whitespace-space-before-tab
-          :foreground primary-fixed-dark :background warning)))
+          :foreground contrast-firebrick
+          :background contrast-dark-orange)))
     (should (equal (chroma-face-mapping (car expectation))
                    (cdr expectation)))))
 
@@ -411,13 +567,17 @@
            (attributes
             (chroma--resolve-face-attributes
              (chroma-face-mapping 'magit-diff-lines-heading)
-             colors)))
-      (should
-       (equal (plist-get attributes :foreground)
-              (chroma-palette-color 'neutral 'bg-main variant)))
+             colors variant)))
+      (if (eq variant 'dark)
+          (should
+           (equal (plist-get attributes :foreground)
+                  (chroma-palette-color
+                   'neutral 'magit-lines-foreground variant)))
+        (should-not (plist-member attributes :foreground)))
       (should
        (equal (plist-get attributes :background)
-              (chroma-palette-color 'yellow 'base variant)))))
+              (chroma-palette-color
+               'yellow 'magit-lines-background variant)))))
   ;; Magit overlays this structural face on the selected lines.  Its default
   ;; bold weight must remain package-owned, and a background here would hide
   ;; the added/removed line colors underneath it.
@@ -524,11 +684,12 @@
           (chroma--resolve-face-attributes
            (chroma-face-mapping 'magit-diff-removed) colors))
          (chartreuse-background
-          (chroma-palette-color 'chartreuse 'current-b variant))
+          (chroma-palette-color 'chartreuse 'magit-green-deep variant))
          (purple-background
-          (chroma-palette-color 'purple 'current-a variant)))
+          (chroma-palette-color 'purple 'magit-red-deep variant)))
     (should (equal (plist-get added :foreground)
-                   (chroma-palette-color 'chartreuse 'vivid variant)))
+                   (chroma-palette-color
+                    'chartreuse 'magit-green-pale variant)))
     (should (equal (plist-get added :background) chartreuse-background))
     (should (equal (plist-get removed :background) purple-background))
     (should-not (equal chartreuse-background purple-background))))
@@ -538,18 +699,18 @@
   (let ((primary-count 0)
         (secondary-count 0))
     (dolist (mapping (chroma-face-mappings))
-      (let ((attributes (cdr mapping)))
-        (while attributes
-          (pop attributes)
-          (let* ((role (pop attributes))
-                 (selector (nth 1
-                                (assq role
-                                      chroma-semantic-role-sources))))
-            (cond
-             ((eq selector 'primary)
-              (setq primary-count (1+ primary-count)))
-             ((eq selector 'secondary)
-              (setq secondary-count (1+ secondary-count))))))))
+      (cl-loop
+       for (_attribute source) on (cdr mapping) by #'cddr
+       do (dolist (role (if (symbolp source)
+                            (list source)
+                          (mapcar #'cdr source)))
+            (let ((selector
+                   (nth 1 (assq role chroma-semantic-role-sources))))
+              (cond
+               ((eq selector 'primary)
+                (setq primary-count (1+ primary-count)))
+               ((eq selector 'secondary)
+                (setq secondary-count (1+ secondary-count))))))))
     (should (> primary-count secondary-count))
     (should (>= (/ (float primary-count)
                    (+ primary-count secondary-count))
@@ -559,11 +720,18 @@
   "No face mapping can override a structural face attribute."
   (let ((known-roles (mapcar #'car chroma-semantic-role-sources)))
     (dolist (mapping (chroma-face-mappings))
-      (let ((attributes (cdr mapping)))
-        (should (= (% (length attributes) 2) 0))
-        (while attributes
-          (should (memq (pop attributes) chroma-face-color-attributes))
-          (should (memq (pop attributes) known-roles)))))))
+      (should (= (% (length (cdr mapping)) 2) 0))
+      (cl-loop
+       for (attribute source) on (cdr mapping) by #'cddr
+       do (should (memq attribute chroma-face-color-attributes))
+       do (if (symbolp source)
+              (should (memq source known-roles))
+            (let (variants)
+              (dolist (entry source)
+                (should (memq (car entry) chroma-supported-variants))
+                (should-not (memq (car entry) variants))
+                (should (memq (cdr entry) known-roles))
+                (push (car entry) variants))))))))
 
 (ert-deftest chroma-faces-diff-colors-follow-primary-and-secondary ()
   "Diff colors contain only the selected primary and secondary hues."
@@ -645,9 +813,11 @@
 
 (ert-deftest chroma-faces-theme-preserves-non-color-attributes ()
   "Enabling Chroma leaves representative structural attributes intact."
-  (require 'org)
+  (chroma-test--load-audited-built-ins)
   (let* ((faces '(default region link mode-line font-lock-keyword-face
-                  org-date-selected))
+                  org-date-selected custom-comment ediff-even-diff-A
+                  eww-form-text message-cited-text-1 tool-bar
+                  widget-field))
          (attributes '(:family :foundry :width :height :weight :slant
                        :underline :overline :strike-through :box
                        :inverse-video :stipple :extend))

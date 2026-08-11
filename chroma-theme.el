@@ -5,7 +5,7 @@
 ;; Author: Chroma Theme contributors
 ;; Version: 0.1.0
 ;; URL: https://github.com/kn66/.emacs.d/tree/main/lisp/chroma-theme
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "30.1"))
 ;; Keywords: faces, theme
 
 ;; This file is part of Chroma Theme.

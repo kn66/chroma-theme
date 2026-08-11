@@ -12,7 +12,7 @@
 (defconst chroma-test-enhanced-text-contrast 7.0
   "Preferred WCAG contrast ratio for Chroma's main text.")
 
-(defconst chroma-test--source-relative-background-references
+(defconst chroma-test--source-relative-token-references
   '((selection "#0000cd" "#eedc82")
     (standalone-selection "#4a708b" "#ffff00")
     (refinement "#556b2f" "#b4eeb4")
@@ -33,8 +33,82 @@
     (current-a "#553333" "#ffdddd")
     (current-ancestor "#004151" "#cfdeee")
     (current-b "#335533" "#ddffdd")
-    (current-c "#888833" "#ffffaa"))
-  "Dark and light upstream colors for source-relative backgrounds.")
+    (current-c "#888833" "#ffffaa")
+    (gnus-mail-1-empty "#e1ffe1" "#cd1076")
+    (gnus-mail-2-empty "#c1ffc1" "#cd6090")
+    (gnus-mail-3-empty "#7fffd4" "#8b008b")
+    (gnus-mail-low-empty "#76eec6" "#8b0a50")
+    (gnus-news-1-empty "#afeeee" "#228b22")
+    (gnus-news-2-empty "#40e0d0" "#53868b")
+    (gnus-news-low-empty "#00ced1" "#006400")
+    (gnus-summary-ancient "#87ceeb" "#4169e1")
+    (gnus-summary-read "#98fb98" "#006400")
+    (gnus-summary-ticked "#ffc0cb" "#b22222")
+    (gnus-summary-undownloaded "#d3d3d3" "#008b8b")
+    (info-node "#ffffff" "#a52a2a")
+    (message-cited-1 "#ffaeb9" "#ff0000")
+    (message-cited-2 "#228b22" "#8b0000")
+    (message-cited-3 "#cd9b1d" "#698b22")
+    (message-cited-4 "#cd661d" "#36648b")
+    (message-command-output "#228b22" "#cd0000")
+    (ert-expected "#00cd00" "#00ff00")
+    (ert-unexpected "#cd0000" "#ff0000"))
+  "Dark and light upstream colors for source-relative hue tokens.")
+
+(defconst chroma-test--contrast-critical-token-references
+  '((isearch-foreground "#8b2323" "#b0e2ff")
+    (isearch-background "#ee799f" "#cd00cd")
+    (paren-mismatch-background "#a020f0" "#a020f0")
+    (contrast-red-1 "#ff0000" "#ff0000")
+    (contrast-yellow-1 "#ffff00" "#ffff00")
+    (custom-state-background "#0000ff" "#0000ff")
+    (custom-rogue-foreground "#ffc0cb" "#ffc0cb")
+    (org-clock-background "#4a708b" "#d3d3d3")
+    (org-dispatcher-foreground "#ffd700" "#00008b")
+    (org-dispatcher-background "#333333" "#c6e2ff")
+    (help-key-foreground "#add8e6" "#00008b")
+    (whitespace-space-background "#333333" "#ffffe0")
+    (whitespace-hspace-background "#3d3d3d" "#cdc9a5")
+    (whitespace-tab-background "#383838" "#f5f5dc")
+    (contrast-firebrick "#b22222" "#b22222")
+    (contrast-dark-orange "#ff8c00" "#ff8c00")
+    (whitespace-line-foreground "#ee82ee" "#ee82ee")
+    (whitespace-missing-background "#d0d040" "#d0d040")
+    (search-group-1-background "#ff82ab" "#f000f0")
+    (search-group-1-foreground "#8b2323" "#b0e2ff")
+    (search-group-2-background "#cd6889" "#a000a0")
+    (search-group-2-foreground "#8b2323" "#b0e2ff")
+    (corfu-quick-1-background "#0050af" "#7feaff")
+    (corfu-quick-2-background "#7f1f7f" "#ffaaff")
+    (vundo-diff-highlight "#104e8b" "#1e90ff")
+    (corfu-current-background "#00415e" "#c0efff")
+    (diff-hl-change-foreground "#0000cd" "#0000cd")
+    (diff-hl-change-background "#333355" "#ddddff")
+    (tempel-field-foreground "#e5cfef" "#541f4f")
+    (tempel-field-background "#230631" "#fdf0ff")
+    (tempel-form-foreground "#b8e2b8" "#004000")
+    (tempel-form-background "#001904" "#ecf7ed")
+    (tempel-default-foreground "#a8e5e5" "#0f3360")
+    (tempel-default-background "#041529" "#ebf6fa")
+    (avy-lead-background "#e52b50" "#e52b50")
+    (avy-lead-0-background "#4f57f9" "#4f57f9")
+    (avy-lead-2-background "#f86bf3" "#f86bf3")
+    (transient-disabled-background "#ff0000" "#ff0000")
+    (transient-enabled-background "#00ff00" "#00ff00")
+    (magit-lines-background "#8b4c39" "#cd8162")
+    (magit-red-deep "#553333" "#ffdddd")
+    (magit-red-pale "#ffdddd" "#aa2222")
+    (magit-green-deep "#335533" "#ddffdd")
+    (magit-green-pale "#ddffdd" "#22aa22")
+    (magit-base-deep "#555522" "#ffffcc")
+    (magit-base-pale "#ffffcc" "#aaaa11")
+    (magit-red-highlight-foreground "#eecccc" "#aa2222")
+    (magit-red-highlight-background "#663333" "#eecccc")
+    (magit-green-highlight-foreground "#cceecc" "#22aa22")
+    (magit-green-highlight-background "#336633" "#cceecc")
+    (magit-base-highlight-foreground "#eeeebb" "#aaaa11")
+    (magit-base-highlight-background "#666622" "#eeeebb"))
+  "Dark and light sources for finite contrast-critical hue tokens.")
 
 (defun chroma-test--hex-channel (color offset)
   "Read a normalized RGB channel from COLOR at OFFSET."
@@ -374,9 +448,9 @@
            (> (chroma-test--oklab-chroma refinement)
               (chroma-test--oklab-chroma muted))))))))
 
-(ert-deftest chroma-contrast-background-tones-match-source-gamut-target ()
-  "Source-relative backgrounds preserve the closest in-gamut OKLCH color."
-  (dolist (expectation chroma-test--source-relative-background-references)
+(ert-deftest chroma-contrast-source-relative-tokens-match-gamut-target ()
+  "Source-relative tokens preserve the closest in-gamut OKLCH color."
+  (dolist (expectation chroma-test--source-relative-token-references)
     (dolist (variant chroma-supported-variants)
       (let* ((reference
               (nth (if (eq variant 'dark) 1 2) expectation))
@@ -406,6 +480,31 @@
              (< (sqrt (+ (expt (- actual-a target-a) 2)
                          (expt (- actual-b target-b) 2)))
                 0.004))))))))
+
+(ert-deftest chroma-contrast-critical-tokens-preserve-source-luminance ()
+  "Contrast-critical tokens retain source luminance on every hue axis."
+  (dolist (expectation chroma-test--contrast-critical-token-references)
+    (dolist (variant chroma-supported-variants)
+      (let* ((reference
+              (nth (if (eq variant 'dark) 1 2) expectation))
+             (source-chroma (chroma-test--oklab-chroma reference))
+             (source-luminance
+              (chroma-test--relative-luminance reference)))
+        (dolist (hue chroma-supported-hues)
+          (let* ((target-hue (alist-get hue chroma-hue-angles))
+                 (color
+                  (chroma-palette-color hue (car expectation) variant))
+                 (actual (chroma-test--oklab color))
+                 (actual-lightness (nth 0 actual))
+                 (actual-chroma (nth 1 actual))
+                 (maximum-chroma
+                  (chroma-test--maximum-in-gamut-chroma
+                   actual-lightness source-chroma target-hue)))
+            (should
+             (< (abs (- (chroma-test--relative-luminance color)
+                        source-luminance))
+                0.004))
+            (should (< (abs (- actual-chroma maximum-chroma)) 0.004))))))))
 
 (ert-deftest chroma-contrast-vivid-tone-preserves-standard-syntax-levels ()
   "Vivid syntax is very bright on dark and moderately dark on light."
@@ -492,6 +591,93 @@
    (chroma-palette-color 'neutral 'fg-on-bright 'light)
    (chroma-palette-color 'neutral 'bg-ui 'light)
    10.0))
+
+(defconst chroma-contrast-test--audited-built-in-libraries
+  '(tab-bar tab-line hl-line display-line-numbers isearch replace
+    paren compile diff-mode ediff ansi-color cus-edit wid-edit org
+    pulse sh-script dired help-mode info calendar whitespace message
+    smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
+  "Built-in libraries loaded by effective color-pair tests.")
+
+(defun chroma-test--standard-color-hex (color)
+  "Return standard six-digit hexadecimal RGB for COLOR."
+  (if (string-match-p "\\`#[[:xdigit:]]\\{6\\}\\'" color)
+      (downcase color)
+    (let ((values
+           (tty-color-standard-values
+            (downcase
+             (replace-regexp-in-string "[[:space:]]" "" color)))))
+      (unless values
+        (error "No standard RGB definition for %S" color))
+      (apply #'format "#%02x%02x%02x"
+             (mapcar (lambda (value) (round (/ value 257.0))) values)))))
+
+(ert-deftest chroma-contrast-direct-face-pairs-retain-source-contrast ()
+  "Every direct foreground/background pair retains upstream contrast."
+  (dolist (library chroma-contrast-test--audited-built-in-libraries)
+    (require library nil t))
+  (let ((old-display-type (frame-parameter nil 'display-type))
+        (old-background-mode (frame-parameter nil 'background-mode))
+        (color-sets
+         (cl-loop
+          for variant in chroma-supported-variants append
+          (cl-loop
+           for primary in chroma-supported-hues append
+           (cl-loop
+            for secondary in chroma-supported-hues
+            collect
+            (list variant primary secondary
+                  (chroma-resolve-semantic-colors
+                   primary secondary variant))))))
+        (pair-count 0))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-color-cells)
+                   (lambda (&optional _frame) 16777216))
+                  ((symbol-function 'window-system)
+                   (lambda (&optional _frame) 'pgtk)))
+          (dolist (mapping (chroma-face-mappings))
+            (when (and (facep (car mapping))
+                       (plist-member (cdr mapping) :foreground)
+                       (plist-member (cdr mapping) :background))
+              (dolist (variant chroma-supported-variants)
+                (modify-frame-parameters
+                 nil (list (cons 'display-type 'color)
+                           (cons 'background-mode variant)))
+                (let* ((source
+                        (face-spec-choose
+                         (get (car mapping) 'face-defface-spec)))
+                       (source-foreground
+                        (plist-get source :foreground))
+                       (source-background
+                        (plist-get source :background)))
+                  (when (and (stringp source-foreground)
+                             (stringp source-background))
+                    (setq pair-count (1+ pair-count))
+                    (let ((source-ratio
+                           (chroma-test--contrast-ratio
+                            (chroma-test--standard-color-hex
+                             source-foreground)
+                            (chroma-test--standard-color-hex
+                             source-background))))
+                      (dolist (entry color-sets)
+                        (when (eq variant (nth 0 entry))
+                          (let* ((attributes
+                                  (chroma--resolve-face-attributes
+                                   (cdr mapping) (nth 3 entry)))
+                                 (candidate-ratio
+                                  (chroma-test--contrast-ratio
+                                   (plist-get attributes :foreground)
+                                   (plist-get attributes :background))))
+                            ;; Contrast-critical finite tokens hold source
+                            ;; luminance.  This tolerance covers only 8-bit
+                            ;; HEX quantization across the two selected hues.
+                            (should
+                             (< (abs (- candidate-ratio source-ratio))
+                                0.12))))))))))))
+      (modify-frame-parameters
+       nil (list (cons 'display-type old-display-type)
+                 (cons 'background-mode old-background-mode))))
+    (should (> pair-count 60))))
 
 (provide 'chroma-contrast-test)
 

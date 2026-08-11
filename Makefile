@@ -7,7 +7,9 @@ TESTFILES = test/chroma-palette-test.el \
 	test/chroma-faces-test.el \
 	test/chroma-contrast-test.el
 
-.PHONY: all compile test checkdoc clean-elc
+.PHONY: all compile test bootstrap-external test-external checkdoc clean-elc
+
+EXTERNAL_PACKAGES_DIR ?= .external-packages
 
 all: compile test
 
@@ -17,6 +19,15 @@ compile:
 test:
 	$(EMACS) -Q --batch -L . -L test \
 		$(addprefix -l ,$(TESTFILES)) \
+		-f ert-run-tests-batch-and-exit
+
+bootstrap-external:
+	sh ./test/bootstrap-external-packages.sh "$(EXTERNAL_PACKAGES_DIR)"
+
+test-external:
+	CHROMA_EXTERNAL_PACKAGES_DIR="$(abspath $(EXTERNAL_PACKAGES_DIR))" \
+	$(EMACS) -Q --batch -L . -L test \
+		-l test/chroma-external-integration-test.el \
 		-f ert-run-tests-batch-and-exit
 
 checkdoc:

@@ -4,7 +4,7 @@
 
 ;; Author: Chroma Theme contributors
 ;; Keywords: faces
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "30.1"))
 
 ;; This file is part of Chroma Theme.
 
@@ -70,9 +70,15 @@
   "Color mappings for Font Lock faces with explicit standard colors.")
 
 (defconst chroma-face-mappings-ui
-  '((mode-line :foreground fg-on-bright :background bg-mode-line)
-    (mode-line-inactive :foreground fg-main :background bg-panel)
-    (header-line :foreground fg-main :background bg-panel)
+  '((mode-line
+     :foreground mode-line-source-foreground
+     :background mode-line-source-background)
+    (mode-line-inactive
+     :foreground mode-line-inactive-foreground
+     :background mode-line-inactive-background)
+    (header-line
+     :foreground header-line-source-foreground
+     :background header-line-source-background)
     (minibuffer-prompt :foreground primary-emphasis)
     (fringe :background bg-main)
     (window-divider :foreground window-divider)
@@ -80,18 +86,28 @@
     (window-divider-last-pixel :foreground border-trailing)
     (line-number-major-tick :background bg-mode-line)
     (line-number-minor-tick :background bg-ui-inactive)
-    (tab-bar :foreground fg-on-bright :background bg-ui)
+    (tab-bar :foreground tab-source-foreground
+             :background tab-source-background)
     (tab-bar-tab-inactive :background bg-ui-inactive)
-    (tab-line :foreground fg-on-bright :background bg-ui)
+    (tab-line :foreground tab-source-foreground
+              :background tab-source-background)
+    (tab-line-tab-current :background bg-tab-current)
     (tab-line-tab-inactive :background bg-ui-inactive)
-    (tab-line-highlight :foreground fg-on-bright :background bg-ui)
-    (tab-line-close-highlight :foreground error))
+    (tab-line-tab-inactive-alternate
+     :background bg-tab-inactive-alternate)
+    (tab-line-highlight :foreground tab-source-foreground
+                        :background tab-source-background)
+    (tab-line-close-highlight :foreground error)
+    (separator-line :background bg-separator)
+    (tool-bar :foreground fixed-black :background bg-tool-bar)
+    (tooltip :foreground fixed-black :background bg-tooltip)
+    (icon-button :foreground fixed-black :background bg-fixed-gray-80))
   "Color mappings for built-in Emacs user-interface faces.")
 
 (defconst chroma-face-mappings-search
   '((match :background match)
     (lazy-highlight :background alternate-selection)
-    (isearch :foreground bg-main :background search)
+    (isearch :foreground isearch-foreground :background isearch-background)
     (isearch-fail :background error-muted)
     (isearch-group-1
      :foreground primary-search-group-1-foreground
@@ -101,7 +117,7 @@
      :background secondary-search-group-2-background)
     (show-paren-match :background paren-match)
     (show-paren-mismatch
-     :foreground fg-fixed-light :background primary-fixed-dark))
+     :foreground fg-fixed-light :background paren-mismatch-background))
   "Color mappings for search, match, and parenthesis faces.")
 
 (defconst chroma-face-mappings-completion
@@ -114,6 +130,11 @@
     (compilation-mode-line-fail :foreground error))
   "Color mappings for built-in diagnostic faces.")
 
+(defconst chroma-face-mappings-ert
+  '((ert-test-result-expected :background ert-expected)
+    (ert-test-result-unexpected :background ert-unexpected))
+  "Color mappings for ERT result faces with explicit colors.")
+
 (defconst chroma-face-mappings-diff
   '((diff-added :background diff-added)
     (diff-removed :background diff-removed)
@@ -125,11 +146,20 @@
     (diff-refine-added :background diff-refine-added)
     (diff-refine-removed :background diff-refine-removed)
     (diff-refine-changed :background secondary-fine-c)
-    (diff-error :foreground primary-alert :background bg-main))
+    (diff-changed-unspecified :background bg-diff-changed-unspecified)
+    (diff-error :foreground contrast-red-1 :background fixed-black))
   "Color mappings for built-in Diff mode faces.")
 
 (defconst chroma-face-mappings-ediff
-  '((ediff-current-diff-A :background primary-current-a)
+  '((ediff-even-diff-A :background bg-ediff-light)
+    (ediff-even-diff-Ancestor :background bg-ediff-mid)
+    (ediff-even-diff-B :background bg-ediff-mid)
+    (ediff-even-diff-C :background bg-ediff-light)
+    (ediff-odd-diff-A :background bg-ediff-mid)
+    (ediff-odd-diff-Ancestor :background bg-fixed-gray-40)
+    (ediff-odd-diff-B :background bg-ediff-light)
+    (ediff-odd-diff-C :background bg-ediff-mid)
+    (ediff-current-diff-A :background primary-current-a)
     (ediff-current-diff-Ancestor :background primary-current-ancestor)
     (ediff-current-diff-B :background secondary-current-b)
     (ediff-current-diff-C :background secondary-current-c)
@@ -140,7 +170,15 @@
   "Color mappings for built-in Ediff faces.")
 
 (defconst chroma-face-mappings-ansi
-  '((ansi-color-red
+  '((ansi-color-black
+     :foreground ansi-black :background ansi-black)
+    (ansi-color-bright-black
+     :foreground ansi-bright-black :background ansi-bright-black)
+    (ansi-color-white
+     :foreground ansi-white :background ansi-white)
+    (ansi-color-bright-white
+     :foreground ansi-bright-white :background ansi-bright-white)
+    (ansi-color-red
      :foreground primary-ansi-mid :background primary-ansi-mid)
     (ansi-color-bright-red
      :foreground primary-ansi-mid-bright
@@ -172,19 +210,30 @@
   "Color mappings for built-in ANSI color faces.")
 
 (defconst chroma-face-mappings-custom
-  '((custom-button-pressed-unraised :foreground secondary)
-    (custom-changed :foreground bg-main :background primary)
+  '((custom-button
+     :foreground fixed-black :background bg-fixed-light-gray)
+    (custom-button-mouse
+     :foreground fixed-black :background bg-fixed-gray-90)
+    (custom-button-pressed
+     :foreground fixed-black :background bg-fixed-light-gray)
+    (custom-button-pressed-unraised :foreground secondary)
+    (custom-changed
+     :foreground fg-fixed-light :background custom-state-background)
     (custom-comment-tag :foreground primary-strong)
+    (custom-comment :background bg-input)
     (custom-group-tag :foreground primary-emphasis)
     (custom-group-tag-1 :foreground secondary-status-error)
     (custom-invalid
-     :foreground secondary-ansi-vivid :background primary-alert)
-    (custom-modified :foreground bg-main :background primary)
+     :foreground contrast-yellow-1 :background contrast-red-1)
+    (custom-modified
+     :foreground fg-fixed-light :background custom-state-background)
     (custom-rogue
-     :foreground secondary-ansi-high :background bg-fixed-dark)
-    (custom-set :foreground primary :background bg-main)
+     :foreground custom-rogue-foreground :background fixed-black)
+    (custom-set
+     :foreground fg-fixed-light :background custom-state-background)
     (custom-state :foreground secondary)
-    (custom-themed :foreground bg-main :background primary)
+    (custom-themed
+     :foreground fg-fixed-light :background custom-state-background)
     (custom-variable-obsolete :foreground primary-emphasis)
     (custom-variable-tag :foreground primary-emphasis)
     (widget-button-pressed :foreground primary-alert)
@@ -193,13 +242,16 @@
 
 (defconst chroma-face-mappings-org
   '((org-agenda-done :foreground success)
+    (org-agenda-dimmed-todo-face :foreground fg-fixed-gray-50)
     (org-agenda-restriction-lock :background bg-subtle)
     (org-agenda-structure :foreground primary-emphasis)
-    (org-clock-overlay :foreground fg-main :background alternate-selection)
+    (org-clock-overlay
+     :foreground org-clock-foreground :background org-clock-background)
     (org-date :foreground primary-status-success)
     (org-date-selected :foreground error)
     (org-dispatcher-highlight
-     :foreground primary-emphasis :background primary-muted)
+     :foreground org-dispatcher-foreground
+     :background org-dispatcher-background)
     (org-document-info :foreground primary-strong)
     (org-document-title :foreground primary-strong)
     (org-done :foreground success)
@@ -207,8 +259,11 @@
     (org-ellipsis :foreground secondary-polarity)
     (org-footnote :foreground primary-status-success)
     (org-formula :foreground primary)
+    (org-column :background bg-org-column)
+    (org-column-title :background bg-org-column)
     (org-headline-done :foreground secondary-polarity)
     (org-headline-todo :foreground primary)
+    (org-hide :foreground bg-main)
     (org-latex-and-related :foreground secondary)
     (org-mode-line-clock-overrun :background error-alert)
     (org-scheduled :foreground success)
@@ -216,6 +271,8 @@
     (org-scheduled-today :foreground success)
     (org-sexp-date :foreground primary-status-success)
     (org-table :foreground secondary)
+    (org-table-header
+     :foreground fixed-black :background bg-fixed-light-gray)
     (org-time-grid :foreground secondary-polarity)
     (org-todo :foreground error)
     (org-upcoming-deadline :foreground primary))
@@ -232,38 +289,48 @@
 
 (defconst chroma-face-mappings-tools
   '((dired-broken-symlink
-     :foreground secondary-ansi-vivid :background primary-alert)
-    (help-key-binding :foreground primary-emphasis :background bg-subtle)
+     :foreground contrast-yellow-1 :background contrast-red-1)
+    (help-key-binding
+     :foreground help-key-foreground :background help-key-background)
     (info-menu-star :foreground primary-alert)
+    (info-node :foreground info-node)
     (diary :foreground secondary-status-success)
     (holiday :background warning-muted)
-    (whitespace-space :foreground fg-fixed-gray
-                      :background secondary-muted)
-    (whitespace-hspace :foreground fg-fixed-gray
-                       :background secondary-muted)
-    (whitespace-tab :foreground fg-fixed-gray
-                    :background secondary-muted)
+    (whitespace-space
+     :foreground fg-fixed-gray :background whitespace-space-background)
+    (whitespace-hspace
+     :foreground fg-fixed-gray :background whitespace-hspace-background)
+    (whitespace-tab
+     :foreground fg-fixed-gray :background whitespace-tab-background)
     (whitespace-newline :foreground fg-fixed-gray)
     (whitespace-trailing
-     :foreground secondary-ansi-vivid :background primary-alert)
+     :foreground contrast-yellow-1 :background contrast-red-1)
     (whitespace-empty
-     :foreground primary-fixed-dark :background secondary-ansi-vivid)
-    (whitespace-indentation :foreground primary
-                            :background primary-muted)
+     :foreground contrast-firebrick :background contrast-yellow-1)
+    (whitespace-indentation
+     :foreground contrast-firebrick :background contrast-yellow-1)
     (whitespace-space-after-tab
-     :foreground primary-fixed-dark :background secondary-ansi-vivid)
+     :foreground contrast-firebrick :background contrast-yellow-1)
     (whitespace-space-before-tab
-     :foreground primary-fixed-dark :background warning)
+     :foreground contrast-firebrick :background contrast-dark-orange)
     (whitespace-big-indent
      :foreground primary-whitespace-big-foreground
      :background primary-alert)
-    (whitespace-line :foreground secondary :background bg-subtle)
+    (whitespace-line
+     :foreground whitespace-line-foreground
+     :background whitespace-line-background)
     (whitespace-missing-newline-at-eof
-     :foreground fg-main :background secondary-muted))
+     :foreground fixed-black :background whitespace-missing-background)
+    (widget-field :background bg-input)
+    (widget-single-line-field :background bg-input))
   "Color mappings for selected built-in tool faces.")
 
 (defconst chroma-face-mappings-message
-  '((message-header-cc :foreground primary-strong)
+  '((message-cited-text-1 :foreground message-cited-1)
+    (message-cited-text-2 :foreground message-cited-2)
+    (message-cited-text-3 :foreground message-cited-3)
+    (message-cited-text-4 :foreground message-cited-4)
+    (message-header-cc :foreground primary-strong)
     (message-header-name :foreground primary-polarity)
     (message-header-newsgroups :foreground primary-strong)
     (message-header-other :foreground primary)
@@ -271,8 +338,27 @@
     (message-header-to :foreground primary-strong)
     (message-header-xheader :foreground secondary-emphasis)
     (message-mml :foreground secondary-status-success)
-    (message-separator :foreground primary-emphasis))
+    (message-separator :foreground primary-emphasis)
+    (mm-command-output :foreground message-command-output))
   "Color mappings for Message mode faces with explicit colors.")
+
+(defconst chroma-face-mappings-gnus
+  '((gnus-group-mail-1-empty :foreground gnus-mail-1-empty)
+    (gnus-group-mail-2-empty :foreground gnus-mail-2-empty)
+    (gnus-group-mail-3-empty :foreground gnus-mail-3-empty)
+    (gnus-group-mail-low-empty :foreground gnus-mail-low-empty)
+    (gnus-group-news-1-empty :foreground gnus-news-1-empty)
+    (gnus-group-news-2-empty :foreground gnus-news-2-empty)
+    (gnus-group-news-low-empty :foreground gnus-news-low-empty)
+    (gnus-splash :foreground fg-gnus-splash)
+    (gnus-summary-cancelled
+     :foreground gnus-summary-cancelled :background fixed-black)
+    (gnus-summary-normal-ancient :foreground gnus-summary-ancient)
+    (gnus-summary-normal-read :foreground gnus-summary-read)
+    (gnus-summary-normal-ticked :foreground gnus-summary-ticked)
+    (gnus-summary-normal-undownloaded
+     :foreground gnus-summary-undownloaded))
+  "Color mappings for Gnus faces with explicit standard colors.")
 
 (defconst chroma-face-mappings-merge
   '((smerge-base :background secondary-current-c)
@@ -293,21 +379,34 @@
     (epa-validity-high :foreground secondary-dark-only-emphasis)
     (epa-validity-medium :foreground secondary-dark-only-emphasis)
     (eshell-prompt :foreground primary-emphasis)
+    (eww-form-checkbox
+     :foreground fixed-black :background bg-fixed-light-gray)
+    (eww-form-file
+     :foreground fixed-black :background bg-fixed-gray-80)
+    (eww-form-select
+     :foreground fixed-black :background bg-fixed-light-gray)
+    (eww-form-submit
+     :foreground fixed-black :background bg-fixed-gray-80)
+    (eww-form-text
+     :foreground fg-fixed-light :background bg-fixed-gray-50)
+    (eww-form-textarea
+     :foreground fixed-black :background bg-fixed-gray-192)
     (eww-invalid-certificate :foreground primary-alert)
     (eww-valid-certificate :foreground secondary-steady)
-    (shr-mark :foreground fg-on-bright
-              :background secondary-ansi-vivid)
+    (shr-mark :foreground fixed-black :background contrast-yellow-1)
     (shr-selected-link :background error-alert)
     (speedbar-button-face :foreground secondary)
     (speedbar-directory-face :foreground primary-emphasis)
     (speedbar-file-face :foreground primary-status-success)
     (speedbar-highlight-face :background alternate-selection)
     (speedbar-selected-face :foreground primary-alert)
-    (speedbar-separator-face :foreground bg-main :background primary)
+    (speedbar-separator-face
+     :foreground fg-fixed-light :background custom-state-background)
     (speedbar-tag-face :foreground secondary-polarity-strong)
     (tty-menu-disabled-face
-     :foreground fg-fixed-light-gray :background primary-ansi-low)
-    (tty-menu-enabled-face :foreground bg-main :background primary)
+     :foreground fg-fixed-light-gray :background custom-state-background)
+    (tty-menu-enabled-face
+     :foreground contrast-yellow-1 :background custom-state-background)
     (tty-menu-selected-face :background secondary-alert))
   "Color mappings for selected built-in application faces.")
 
@@ -335,6 +434,7 @@
           chroma-face-mappings-search
           chroma-face-mappings-completion
           chroma-face-mappings-diagnostics
+          chroma-face-mappings-ert
           chroma-face-mappings-diff
           chroma-face-mappings-ediff
           chroma-face-mappings-ansi
@@ -343,6 +443,7 @@
           chroma-face-mappings-misc
           chroma-face-mappings-tools
           chroma-face-mappings-message
+          chroma-face-mappings-gnus
           chroma-face-mappings-merge
           chroma-face-mappings-applications
           (chroma-external-face-mappings)))
@@ -351,18 +452,27 @@
   "Return the semantic color mapping for FACE, or nil if absent."
   (cdr (assq face (chroma-face-mappings))))
 
-(defun chroma--resolve-face-attributes (mapping colors)
-  "Resolve a face MAPPING using semantic role alist COLORS."
+(defun chroma--resolve-face-attributes (mapping colors &optional variant)
+  "Resolve a face MAPPING using semantic role alist COLORS.
+
+VARIANT defaults to `chroma-variant'.  A mapping role may instead be an
+alist from variants to roles when upstream owns that color attribute only
+in particular variants.  An absent variant deliberately leaves the
+attribute to the upstream proxy."
   (let (attributes)
     (while mapping
       (let* ((attribute (pop mapping))
-             (role (pop mapping))
-             (color (alist-get role colors)))
+             (source (pop mapping))
+             (role (if (symbolp source)
+                       source
+                     (alist-get (or variant chroma-variant) source)))
+             (color (and role (alist-get role colors))))
         (unless (memq attribute chroma-face-color-attributes)
           (error "Chroma mapping uses non-color attribute %S" attribute))
-        (unless color
+        (when (and role (null color))
           (error "Chroma mapping refers to unknown semantic role %S" role))
-        (setq attributes (append attributes (list attribute color)))))
+        (when role
+          (setq attributes (append attributes (list attribute color))))))
     attributes))
 
 (defun chroma-build-face-specs (&optional colors)
@@ -380,7 +490,7 @@ adds mappings for built-in faces that are defined later."
                (when (facep face)
                  (let ((attributes
                         (chroma--resolve-face-attributes
-                         (cdr mapping) resolved-colors)))
+                         (cdr mapping) resolved-colors chroma-variant)))
                    ;; A matching theme spec replaces the upstream `defface'
                    ;; spec instead of merging with it.  Inherit a private
                    ;; proxy of that spec so Chroma can replace colors without

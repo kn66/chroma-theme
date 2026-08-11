@@ -205,11 +205,17 @@ The initial release maps the major built-in faces in the following categories:
 - Fringe, Borders, Line Numbers, Tabs
 - Diff, Ediff, Compilation diagnostics
 - Dired, Help, Info, Calendar, Whitespace
-- Message, Smerge, EPA, EWW/SHR, Bookmark, Eshell
+- Gnus, Message, Smerge, EPA, ERT, EWW/SHR, Bookmark, Eshell
 - Speedbar, TTY menu, Edmacro
 - Explicit Org colors, Customize, Widget, ANSI color
 
 Mapped faces are added to the theme spec only after a ~facep~ check, since availability varies by Emacs version and loaded libraries. If a built-in library defines new faces after the theme is enabled, a lightweight ~after-load-functions~ hook rebuilds the mappings and their upstream proxies.
+
+The Emacs 30 built-in coverage is also checked in reverse: after the audited
+libraries are loaded under a true-color display model, every face with a direct
+simple foreground or background must have a Chroma mapping for exactly those
+attributes.  This catches newly introduced or previously omitted direct colors
+instead of validating only the mappings already listed by Chroma.
 
 Faces that are chromatic in Emacs's standard true-color definitions are assigned to either Primary or Secondary. For example, ~region~, ~secondary-selection~, ~highlight~, Font Lock comments, and completion highlights retain color instead of becoming neutral, using finite tones of the two selected hues. Inherited faces such as ~hl-line~ receive the mapped color from their standard parent. Shadows and ordinary UI backgrounds, which are gray in the standard definitions, remain neutral roles.
 
@@ -231,11 +237,22 @@ Chroma supports the following external packages, whose defaults use specific col
 - Transient 0.13.5
 - Vundo 2.4.0
 
-The listed versions are those whose face definitions were audited. Chroma does not ~require~ these packages as runtime dependencies. If a package has already been loaded, Chroma sets only the faces that exist. If a package is loaded after the theme is enabled, the additional faces are applied through ~after-load-functions~.
+The listed versions are those whose face definitions were audited. Integration
+tests read the actual ~defface~ forms from exact, commit-pinned upstream
+checkouts and verify that every direct color is mapped, every inherited-only
+face remains unmapped, and each private proxy matches the complete upstream
+specification. Chroma does not ~require~ these packages as runtime dependencies.
+If a package has already been loaded, Chroma sets only the faces that exist. If
+a package is loaded after the theme is enabled, the additional faces are
+applied through ~after-load-functions~.
 
 For external packages, Chroma likewise maps only ~:foreground~ and ~:background~ where the upstream defaults specify concrete colors. The generated upstream proxy preserves properties such as Tempel's ~:slant~, Vundo's ~:weight~, and Magit Diff's ~:extend~. Mappings are not duplicated when a child face merely inherits a standard face or a package face that already has colors set.
 
-When multiple lines are selected in Magit, the range boundary in ~magit-diff-lines-heading~ is displayed with a high-contrast Primary color. Chroma does not set a color on ~magit-diff-hunk-region~, which overlaps the selected lines, preserving both Magit's bold styling and the added/removed colors beneath it.
+When multiple lines are selected in Magit, the range boundary in
+~magit-diff-lines-heading~ uses a source-relative Primary tone that retains the
+upstream foreground/background contrast. Chroma does not set a color on
+~magit-diff-hunk-region~, which overlaps the selected lines, preserving both
+Magit's bold styling and the added/removed colors beneath it.
 
 Packages designed primarily around standard face inheritance—such as Consult, Embark, Marginalia, Vertico, Which-key, and Denote—inherit Chroma's built-in face colors without individual mappings. Colors are not reduced to Primary and Secondary for packages where the range of colors itself carries information, such as Rainbow Delimiters or previews of colors in actual data.
 
@@ -243,7 +260,7 @@ External mappings are kept separately in [[chroma-faces-external.el][chroma-face
 
 ** Supported Environments
 
-- Target Emacs version: 28.1 or later
+- Target Emacs version: 30.1 or later
 - Development and verification environment: Emacs 30.2
 - Officially supported display: GUI / true-color
 - Supported variants: dark / light
@@ -266,6 +283,10 @@ For testing only, ERT calculates WCAG relative luminance and contrast ratios and
 - Selection/refinement retains higher OKLab chroma than muted
 - Vivid syntax falls within dark/light contrast ranges close to the standard faces
 - The relative lightness ordering of Diff/Smerge refinement, window dividers, and mode/tab UI
+- Every directly specified foreground/background pair across all 10 Primary
+  hues, all 10 Secondary hues, and both variants stays within 0.12 of the
+  upstream WCAG contrast ratio
+- The same 200-combination pair check for the audited external-package faces
 
 These calculations are used only to validate the palettes, not to generate or adjust colors at runtime.
 
@@ -276,6 +297,14 @@ make test       # All ERT tests
 make compile    # Byte-compile
 make checkdoc   # Docstring/style checks
 make clean-elc  # Remove generated .elc files
+#+end_src
+
+External-package integration tests use exact upstream revisions and are kept
+separate from the dependency-free default test run.
+
+#+begin_src sh
+make bootstrap-external  # Clone and verify the pinned audit fixtures
+make test-external       # Audit real external defface forms and color pairs
 #+end_src
 
 Tests are divided into palette, core, face-invariant, and contrast suites. For non-color information in particular, they verify that mappings contain only ~:foreground~ and ~:background~, that every built-in mapping replaces all and only colors explicitly set upstream, that generated specs inherit an exact runtime proxy of the upstream ~defface~, and that representative faces retain their effective structural attributes. Regression tests also cover duplicate external package face names, semantic roles, Primary's share of chromatic attributes, and the relative ordering of lightness, refinement, and boundaries found in the original faces.
