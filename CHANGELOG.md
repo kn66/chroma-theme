@@ -4,6 +4,13 @@ Notable changes to Chroma Theme are documented in this file.
 
 ## Unreleased
 
+- Add a development-only source-color generator and selector audit.  It
+  extracts direct true-color `defface` colors, jointly classifies dark/light
+  observations as Neutral, Primary, or Secondary with an explicit confidence
+  score, and reports ambiguous or differing reviewed mappings.  It also emits
+  complete finite ten-hue palette candidates that either retain upstream
+  OKLab lightness/chroma or WCAG relative luminance; runtime theme loading
+  remains lookup-only.
 - Raise the minimum supported Emacs version to 30.1 and reverse-audit Emacs 30
   built-in faces under a true-color display model.  Add the omitted direct
   colors for UI, ANSI, Customize, Widget, Org, Info, Message, Gnus, EWW, Ediff,

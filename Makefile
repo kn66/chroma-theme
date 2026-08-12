@@ -1,13 +1,14 @@
 EMACS ?= emacs
 
 ELFILES = chroma-palette.el chroma-core.el chroma-faces-external.el \
-	chroma-faces.el chroma-theme.el
+	chroma-faces.el chroma-theme.el chroma-generate.el
 TESTFILES = test/chroma-palette-test.el \
 	test/chroma-core-test.el \
 	test/chroma-faces-test.el \
-	test/chroma-contrast-test.el
+	test/chroma-contrast-test.el \
+	test/chroma-generate-test.el
 
-.PHONY: all compile test bootstrap-external test-external checkdoc clean-elc
+.PHONY: all compile test reports bootstrap-external test-external checkdoc clean-elc
 
 EXTERNAL_PACKAGES_DIR ?= .external-packages
 
@@ -21,6 +22,10 @@ test:
 		$(addprefix -l ,$(TESTFILES)) \
 		-f ert-run-tests-batch-and-exit
 
+reports:
+	$(EMACS) -Q --batch -L . -l chroma-generate.el \
+		--eval "(chroma-generate-print-audit)"
+
 bootstrap-external:
 	sh ./test/bootstrap-external-packages.sh "$(EXTERNAL_PACKAGES_DIR)"
 
@@ -32,7 +37,7 @@ test-external:
 
 checkdoc:
 	$(EMACS) -Q --batch -L . --eval \
-		"(progn (require 'checkdoc) (dolist (file '(\"chroma-palette.el\" \"chroma-core.el\" \"chroma-faces-external.el\" \"chroma-faces.el\" \"chroma-theme.el\")) (checkdoc-file file)))"
+		"(progn (require 'checkdoc) (dolist (file '(\"chroma-palette.el\" \"chroma-core.el\" \"chroma-faces-external.el\" \"chroma-faces.el\" \"chroma-theme.el\" \"chroma-generate.el\")) (checkdoc-file file)))"
 
 clean-elc:
 	$(RM) $(ELFILES:.el=.elc) test/*.elc

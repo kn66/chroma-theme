@@ -16,7 +16,7 @@ Semantic color roles
 Emacs face mappings
 #+end_src
 
-- The palette is a finite set of HEX values selected in advance by the author. Chroma does not calculate hue, lightness, saturation, or contrast at runtime to generate or adjust colors.
+- The palette is a finite set of reviewed HEX values selected in advance. A development-time generator can derive candidates from upstream colors, but Chroma does not calculate hue, lightness, saturation, or contrast at runtime.
 - Semantic roles describe how colors are used, with names such as ~bg-main~, ~fg-dim~, ~primary~, ~secondary~, ~error~, and ~match~.
 - Face mappings contain only associations such as ~font-lock-keyword-face → primary-vivid~; they know nothing about HEX values.
 
@@ -271,7 +271,7 @@ Face specs apply only to color displays with at least 16,777,216 colors. Because
 
 Every color is specified explicitly in [[chroma-palette.el][chroma-palette.el]]. Runtime code performs palette lookups only.
 
-For testing only, ERT calculates WCAG relative luminance and contrast ratios and verifies at least the following:
+Development tools and ERT calculate WCAG relative luminance and contrast ratios and verify at least the following:
 
 - Main text in dark and light variants: at least 7.0:1
 - Representative normal text in dark and light variants: at least 4.5:1
@@ -288,7 +288,7 @@ For testing only, ERT calculates WCAG relative luminance and contrast ratios and
   upstream WCAG contrast ratio
 - The same 200-combination pair check for the audited external-package faces
 
-These calculations are used only to validate the palettes, not to generate or adjust colors at runtime.
+These calculations generate and validate review candidates during development.  Committed palettes remain finite literal data; no color is generated or adjusted at runtime.
 
 ** Development
 
@@ -296,8 +296,55 @@ These calculations are used only to validate the palettes, not to generate or ad
 make test       # All ERT tests
 make compile    # Byte-compile
 make checkdoc   # Docstring/style checks
+make reports    # Audit reviewed mappings against upstream color tendencies
 make clean-elc  # Remove generated .elc files
 #+end_src
+
+*** Automatic source-color generation and selector audit
+
+[[chroma-generate.el][chroma-generate.el]] is a development-only generator.  It is not required by
+~chroma-theme.el~ and cannot change the enabled theme.  It provides two finite
+candidate-generation methods:
+
+- ~source-relative~ retains the upstream OKLab lightness and chroma, reducing
+  chroma only enough to enter sRGB at each canonical Chroma hue.
+- ~contrast-critical~ retains upstream WCAG relative luminance, then selects
+  the closest in-gamut OKLab lightness and chroma on each canonical hue axis.
+
+Both methods finish by selecting a deterministic literal 8-bit ~#RRGGBB~ value.
+They generate all ten supported hues together, making an incomplete palette row
+impossible.  Face plans select the method automatically: complete direct
+foreground/background pairs are checked across all 100 Primary/Secondary
+combinations with a maximum WCAG ratio drift of 0.12, while lone attributes
+must retain every 3.0, 4.5, or 7.0 contrast level met by the upstream color
+against its main neutral surround.
+
+The same library reads direct simple foreground and background colors from the
+upstream ~defface~ specifications under the true-color dark and light display
+models.  It fits a complementary axis to the audited source colors and groups
+the dark and light observations for each face attribute before classifying it
+as Neutral, Primary, or Secondary.  Colors with OKLab chroma at or below 0.02
+are Neutral.  A chromatic classification whose normalized axis projection is
+below 0.25 is reported as low confidence instead of being silently accepted.
+
+Run the complete built-in audit with:
+
+#+begin_src sh
+make reports
+#+end_src
+
+The report lists the fitted source axis, outcome counts, every newly discovered
+unmapped direct color, and every low-confidence or differing reviewed mapping
+together with its upstream dark/light colors.  Agreement is accepted
+automatically; disagreement remains the explicit static mapping until it is
+reviewed.  This preserves face-by-face ownership while reducing ordinary
+semantic classification to a reproducible color measurement.
+
+For a prospective or existing face, evaluate
+~chroma-generate-print-face-plan~.  The returned review plan contains a dedicated
+semantic role and token, the proposed face mapping, classification confidence,
+and finite dark/light palette rows for every hue.  It never mutates
+~chroma-face-mappings~, ~chroma-semantic-role-sources~, or ~chroma-palettes~.
 
 External-package integration tests use exact upstream revisions and are kept
 separate from the dependency-free default test run.
