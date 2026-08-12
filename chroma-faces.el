@@ -52,9 +52,9 @@
     (error :foreground error)
     (warning :foreground warning)
     (success :foreground success)
-    (escape-glyph :foreground secondary-polarity-strong)
-    (homoglyph :foreground secondary-polarity-strong)
-    (nobreak-hyphen :foreground secondary-polarity-strong)
+    (escape-glyph :foreground special-glyph)
+    (homoglyph :foreground special-glyph)
+    (nobreak-hyphen :foreground special-glyph)
     (trailing-whitespace :background error-alert))
   "Color mappings for fundamental Emacs faces.")
 
@@ -65,7 +65,7 @@
     (font-lock-function-name-face :foreground primary-emphasis)
     (font-lock-keyword-face :foreground primary-vivid)
     (font-lock-string-face :foreground secondary-emphasis)
-    (font-lock-type-face :foreground primary-vivid)
+    (font-lock-type-face :foreground font-lock-type)
     (font-lock-variable-name-face :foreground secondary-vivid))
   "Color mappings for Font Lock faces with explicit standard colors.")
 
@@ -126,7 +126,7 @@
   "Color mappings for built-in completion faces.")
 
 (defconst chroma-face-mappings-diagnostics
-  '((compilation-mode-line-exit :foreground success)
+  '((compilation-mode-line-exit :foreground compilation-exit)
     (compilation-mode-line-fail :foreground error))
   "Color mappings for built-in diagnostic faces.")
 
@@ -193,9 +193,10 @@
     (ansi-color-bright-cyan
      :foreground primary-ansi-vivid :background primary-ansi-vivid)
     (ansi-color-green
-     :foreground secondary-ansi-upper :background secondary-ansi-upper)
+     :foreground secondary-ansi-green :background secondary-ansi-green)
     (ansi-color-bright-green
-     :foreground secondary-ansi-high :background secondary-ansi-high)
+     :foreground secondary-ansi-bright-green
+     :background secondary-ansi-bright-green)
     (ansi-color-yellow
      :foreground secondary-ansi-upper-bright
      :background secondary-ansi-upper-bright)
@@ -203,10 +204,11 @@
      :foreground secondary-ansi-vivid
      :background secondary-ansi-vivid)
     (ansi-color-magenta
-     :foreground secondary-ansi-mid :background secondary-ansi-mid)
+     :foreground secondary-ansi-magenta
+     :background secondary-ansi-magenta)
     (ansi-color-bright-magenta
-     :foreground secondary-ansi-mid-bright
-     :background secondary-ansi-mid-bright))
+     :foreground secondary-ansi-bright-magenta
+     :background secondary-ansi-bright-magenta))
   "Color mappings for built-in ANSI color faces.")
 
 (defconst chroma-face-mappings-custom
@@ -216,7 +218,8 @@
      :foreground fixed-black :background bg-fixed-gray-90)
     (custom-button-pressed
      :foreground fixed-black :background bg-fixed-light-gray)
-    (custom-button-pressed-unraised :foreground secondary)
+    (custom-button-pressed-unraised
+     :foreground custom-button-pressed-unraised)
     (custom-changed
      :foreground fg-fixed-light :background custom-state-background)
     (custom-comment-tag :foreground primary-strong)
@@ -231,17 +234,17 @@
      :foreground custom-rogue-foreground :background fixed-black)
     (custom-set
      :foreground fg-fixed-light :background custom-state-background)
-    (custom-state :foreground secondary)
+    (custom-state :foreground custom-state-foreground)
     (custom-themed
      :foreground fg-fixed-light :background custom-state-background)
     (custom-variable-obsolete :foreground primary-emphasis)
     (custom-variable-tag :foreground primary-emphasis)
     (widget-button-pressed :foreground primary-alert)
-    (widget-documentation :foreground secondary))
+    (widget-documentation :foreground custom-state-foreground))
   "Color mappings for built-in Customize and Widget faces.")
 
 (defconst chroma-face-mappings-org
-  '((org-agenda-done :foreground success)
+  '((org-agenda-done :foreground org-done)
     (org-agenda-dimmed-todo-face :foreground fg-fixed-gray-50)
     (org-agenda-restriction-lock :background bg-subtle)
     (org-agenda-structure :foreground primary-emphasis)
@@ -254,7 +257,7 @@
      :background org-dispatcher-background)
     (org-document-info :foreground primary-strong)
     (org-document-title :foreground primary-strong)
-    (org-done :foreground success)
+    (org-done :foreground org-done)
     (org-drawer :foreground secondary)
     (org-ellipsis :foreground secondary-polarity)
     (org-footnote :foreground primary-status-success)
@@ -266,9 +269,9 @@
     (org-hide :foreground bg-main)
     (org-latex-and-related :foreground secondary)
     (org-mode-line-clock-overrun :background error-alert)
-    (org-scheduled :foreground success)
+    (org-scheduled :foreground org-scheduled)
     (org-scheduled-previously :foreground primary)
-    (org-scheduled-today :foreground success)
+    (org-scheduled-today :foreground org-scheduled)
     (org-sexp-date :foreground primary-status-success)
     (org-table :foreground secondary)
     (org-table-header
@@ -279,12 +282,12 @@
   "Color mappings for Org faces with explicit standard colors.")
 
 (defconst chroma-face-mappings-misc
-  '((blink-matching-paren-offscreen :foreground secondary-ansi-vivid)
+  '((blink-matching-paren-offscreen :foreground blink-offscreen)
     (elisp-shorthand-font-lock-face :foreground primary-ansi-vivid)
     (pulse-highlight-face :background pulse)
     (pulse-highlight-start-face :background pulse)
     (sh-heredoc :foreground secondary-ansi-vivid)
-    (sh-quoted-exec :foreground primary-alert))
+    (sh-quoted-exec :foreground sh-quoted-exec))
   "Color mappings for miscellaneous built-in chromatic faces.")
 
 (defconst chroma-face-mappings-tools
@@ -330,15 +333,15 @@
     (message-cited-text-2 :foreground message-cited-2)
     (message-cited-text-3 :foreground message-cited-3)
     (message-cited-text-4 :foreground message-cited-4)
-    (message-header-cc :foreground primary-strong)
-    (message-header-name :foreground primary-polarity)
-    (message-header-newsgroups :foreground primary-strong)
-    (message-header-other :foreground primary)
-    (message-header-subject :foreground primary-strong)
-    (message-header-to :foreground primary-strong)
+    (message-header-cc :foreground message-header-cc)
+    (message-header-name :foreground message-header-name)
+    (message-header-newsgroups :foreground message-header-newsgroups)
+    (message-header-other :foreground message-header-other)
+    (message-header-subject :foreground message-header-subject)
+    (message-header-to :foreground message-header-to)
     (message-header-xheader :foreground secondary-emphasis)
-    (message-mml :foreground secondary-status-success)
-    (message-separator :foreground primary-emphasis)
+    (message-mml :foreground message-mml)
+    (message-separator :foreground message-separator)
     (mm-command-output :foreground message-command-output))
   "Color mappings for Message mode faces with explicit colors.")
 
@@ -395,10 +398,10 @@
     (eww-valid-certificate :foreground secondary-steady)
     (shr-mark :foreground fixed-black :background contrast-yellow-1)
     (shr-selected-link :background error-alert)
-    (speedbar-button-face :foreground secondary)
+    (speedbar-button-face :foreground speedbar-button)
     (speedbar-directory-face :foreground primary-emphasis)
     (speedbar-file-face :foreground primary-status-success)
-    (speedbar-highlight-face :background alternate-selection)
+    (speedbar-highlight-face :background speedbar-highlight)
     (speedbar-selected-face :foreground primary-alert)
     (speedbar-separator-face
      :foreground fg-fixed-light :background custom-state-background)

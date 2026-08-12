@@ -85,7 +85,7 @@
                      (chroma-palette-color 'orange 'base variant)))
       (should (equal (alist-get 'visited-link colors)
                      (chroma-palette-color
-                      'orange 'emphasis variant))))))
+                      'orange 'visited-link variant))))))
 
 (ert-deftest chroma-core-options-are-customizable ()
   "Primary, secondary, and variant options are Customize variables."

@@ -52,7 +52,22 @@
     (message-cited-4 "#cd661d" "#36648b")
     (message-command-output "#228b22" "#cd0000")
     (ert-expected "#00cd00" "#00ff00")
-    (ert-unexpected "#cd0000" "#ff0000"))
+    (ert-unexpected "#cd0000" "#ff0000")
+    (visited-link "#ee82ee" "#8b008b")
+    (pale-success "#98fb98" "#228b22")
+    (message-header-cc "#7fff00" "#191970")
+    (message-header-name "#00ff00" "#6495ed")
+    (message-header-newsgroups "#ffff00" "#00008b")
+    (message-header-other "#ff3e96" "#4682b4")
+    (message-header-subject "#c0ff3e" "#000080")
+    (message-header-to "#caff70" "#191970")
+    (message-mml "#00fa9a" "#228b22")
+    (org-scheduled "#98fb98" "#006400")
+    (speedbar-highlight "#2e8b57" "#00ff00")
+    (ansi-bright-green "#00ee00" "#00ee00")
+    (blink-offscreen "#00ff00" "#00ff00")
+    (custom-state-foreground "#32cd32" "#006400")
+    (speedbar-button "#00cd00" "#008b00"))
   "Dark and light upstream colors for source-relative hue tokens.")
 
 (defconst chroma-test--contrast-critical-token-references
@@ -107,7 +122,15 @@
     (magit-green-highlight-foreground "#cceecc" "#22aa22")
     (magit-green-highlight-background "#336633" "#cceecc")
     (magit-base-highlight-foreground "#eeeebb" "#aaaa11")
-    (magit-base-highlight-background "#666622" "#eeeebb"))
+    (magit-base-highlight-background "#666622" "#eeeebb")
+    (ansi-magenta "#cd00cd" "#cd00cd")
+    (ansi-bright-magenta "#ee00ee" "#ee00ee")
+    (ansi-green "#00cd00" "#00cd00")
+    (steady "#228b22" "#228b22")
+    (special-glyph "#00ffff" "#a52a2a")
+    (match "#3a5fcd" "#fff68f")
+    (message-separator "#b0e2ff" "#a52a2a")
+    (sh-quoted-exec "#fa8072" "#ff00ff"))
   "Dark and light sources for finite contrast-critical hue tokens.")
 
 (defun chroma-test--hex-channel (color offset)
@@ -233,6 +256,14 @@
   (let ((ratio (chroma-test--contrast-ratio first second)))
     (should (>= ratio minimum))
     (should (<= ratio maximum))))
+
+(defun chroma-test--contrast-level (ratio)
+  "Return the WCAG prominence level met by RATIO."
+  (cond
+   ((>= ratio 7.0) 3)
+   ((>= ratio 4.5) 2)
+   ((>= ratio 3.0) 1)
+   (t 0)))
 
 (ert-deftest chroma-contrast-main-text-meets-enhanced-threshold ()
   "Both variants' main text meets the enhanced 7:1 threshold."
@@ -506,6 +537,72 @@
                 0.004))
             (should (< (abs (- actual-chroma maximum-chroma)) 0.004))))))))
 
+(ert-deftest chroma-contrast-reviewed-low-confidence-contexts-retain-levels ()
+  "Reviewed ambiguous faces retain source contrast in their real context."
+  (dolist (expectation
+           (append chroma-test--source-relative-token-references
+                   chroma-test--contrast-critical-token-references))
+    (when (memq (car expectation)
+                '(ansi-magenta ansi-bright-magenta ansi-green
+                  ansi-bright-green steady visited-link
+                  special-glyph pale-success match message-header-cc
+                  message-header-name message-header-newsgroups
+                  message-header-other message-header-subject
+                  message-header-to message-mml message-separator
+                  org-scheduled sh-quoted-exec speedbar-highlight
+                  blink-offscreen custom-state-foreground
+                  speedbar-button))
+      (dolist (variant chroma-supported-variants)
+        (let* ((token (car expectation))
+               (source (nth (if (eq variant 'dark) 1 2) expectation))
+               (background-p (memq token '(match speedbar-highlight)))
+               (surround
+                (chroma-palette-color
+                 'neutral (if background-p 'fg-main 'bg-main) variant))
+               (source-level
+                (chroma-test--contrast-level
+                 (chroma-test--contrast-ratio source surround))))
+          (dolist (hue chroma-supported-hues)
+            (should
+             (>= (chroma-test--contrast-level
+                  (chroma-test--contrast-ratio
+                   (chroma-palette-color hue token variant) surround))
+                 source-level)))))))
+  ;; Compilation's successful exit indicator appears on the mode line, not
+  ;; the main background.  Both neutral mode-line backgrounds retain their
+  ;; upstream values, so equal luminance keeps this pair's contrast stable.
+  (dolist (variant chroma-supported-variants)
+    (let* ((source "#228b22")
+           (background
+            (chroma-palette-color
+             'neutral 'mode-line-source-background variant))
+           (source-ratio (chroma-test--contrast-ratio source background)))
+      (dolist (hue chroma-supported-hues)
+        (should
+         (< (abs (- (chroma-test--contrast-ratio
+                     (chroma-palette-color hue 'steady variant)
+                     background)
+                    source-ratio))
+            0.08)))))
+  ;; ANSI colors may be used as either member of a foreground/background pair.
+  (dolist (variant chroma-supported-variants)
+    (let ((foreground
+           (chroma-palette-color 'neutral 'fg-main variant)))
+      (dolist (token '(ansi-magenta ansi-bright-magenta ansi-green))
+        (let* ((expectation
+                (assq token
+                      chroma-test--contrast-critical-token-references))
+               (source (nth (if (eq variant 'dark) 1 2) expectation))
+               (source-ratio
+                (chroma-test--contrast-ratio source foreground)))
+          (dolist (hue chroma-supported-hues)
+            (should
+             (< (abs (- (chroma-test--contrast-ratio
+                         (chroma-palette-color hue token variant)
+                         foreground)
+                        source-ratio))
+                0.08))))))))
+
 (ert-deftest chroma-contrast-vivid-tone-preserves-standard-syntax-levels ()
   "Vivid syntax is very bright on dark and moderately dark on light."
   (dolist (variant chroma-supported-variants)
@@ -594,7 +691,7 @@
 
 (defconst chroma-contrast-test--audited-built-in-libraries
   '(tab-bar tab-line hl-line display-line-numbers isearch replace
-    paren compile diff-mode ediff ansi-color cus-edit wid-edit org
+    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
     pulse sh-script dired help-mode info calendar whitespace message
     smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
   "Built-in libraries loaded by effective color-pair tests.")

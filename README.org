@@ -98,6 +98,7 @@ Even when faces use the same hue, Chroma does not collapse their original lightn
 | ~ansi-*~                             | The original lightness ordering of normal and bright ANSI colors |
 | ~base~ / ~emphasis~ / ~vivid~        | Regular, emphasized, and especially bright syntax text           |
 | ~polarity-*~ / ~dark-only~           | Faces whose standard lightness changes between dark and light    |
+| Source-specific reviewed tones       | Ambiguous glyph, link, Message, Org, ANSI, and application faces |
 
 The target lightness values for these tones are fixed in advance for both dark and light variants. Source-relative background tones preserve both the OKLab lightness and chroma of the corresponding standard face. Only when the selected hue would fall outside sRGB at that lightness and chroma does the finite palette reduce chroma while retaining lightness. Separate tones prevent a subtle Magit current hunk, a strong refined Diff region, and a brief Pulse highlight from collapsing into one saturation level. Dedicated neutral tones also preserve the original light–dark relationships of whitespace markers, mode lines, tabs, and window dividers.
 
@@ -334,11 +335,13 @@ make reports
 #+end_src
 
 The report lists the fitted source axis, outcome counts, every newly discovered
-unmapped direct color, and every low-confidence or differing reviewed mapping
-together with its upstream dark/light colors.  Agreement is accepted
-automatically; disagreement remains the explicit static mapping until it is
-reviewed.  This preserves face-by-face ownership while reducing ordinary
-semantic classification to a reproducible color measurement.
+unmapped direct color, and every unresolved low-confidence or differing mapping
+together with its upstream dark/light colors.  Low-confidence decisions that
+have been checked against their related face family and effective color context
+are recorded in ~chroma-generate-reviewed-low-confidence-selectors~.  A later
+mapping change that disagrees with a recorded decision reopens it for review.
+This preserves face-by-face ownership while reducing ordinary semantic
+classification to a reproducible color measurement.
 
 For a prospective or existing face, evaluate
 ~chroma-generate-print-face-plan~.  The returned review plan contains a dedicated

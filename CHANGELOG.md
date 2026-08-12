@@ -4,6 +4,13 @@ Notable changes to Chroma Theme are documented in this file.
 
 ## Unreleased
 
+- Load ERT as part of the built-in audit and review all 56 resulting
+  low-confidence selector outcomes, including the 47 originally reported.
+  Record their intended Primary/Secondary ownership so later mapping drift
+  reopens the audit, and replace shared generic tones on 35 affected
+  attributes with source-specific finite colors for ANSI, special glyphs,
+  visited links, Font Lock/Org states, Message headers, search, and
+  application faces.
 - Add a development-only source-color generator and selector audit.  It
   extracts direct true-color `defface` colors, jointly classifies dark/light
   observations as Neutral, Primary, or Secondary with an explicit confidence

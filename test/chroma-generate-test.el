@@ -181,11 +181,32 @@
                (apply #'+ (mapcar #'cdr summary))))
     (dolist (entry entries)
       (should (memq (plist-get entry :status)
-                    '(accepted differs needs-review unmapped)))
+                    '(accepted reviewed differs needs-review unmapped)))
       (should (memq (plist-get entry :selector)
                     '(neutral primary secondary)))
       (should (plist-get entry :mapped-selectors)))
+    ;; One recorded decision is just above the confidence boundary after ERT
+    ;; joins the fitted source axis; all decisions remain explicit.
+    (should (= (length chroma-generate-reviewed-low-confidence-selectors)
+               57))
+    (should (= (alist-get 'reviewed summary 0) 56))
+    (should-not (alist-get 'needs-review summary))
     (should-not (alist-get 'unmapped summary))))
+
+(ert-deftest chroma-generate-reviewed-selectors-match-static-mappings ()
+  "Every recorded low-confidence decision matches its face mapping."
+  (let (seen)
+    (dolist (decision chroma-generate-reviewed-low-confidence-selectors)
+      (let* ((key (car decision))
+             (face (car key))
+             (attribute (cdr key))
+             (selector (cdr decision))
+             (mapping (cons face (chroma-face-mapping face))))
+        (should-not (member key seen))
+        (push key seen)
+        (should (memq selector
+                      (chroma-generate--mapped-selectors
+                       mapping attribute)))))))
 
 (ert-deftest chroma-runtime-does-not-load-generator ()
   "The theme runtime remains independent from development-time generation."

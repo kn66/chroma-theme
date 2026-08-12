@@ -13,7 +13,7 @@
 
 (defconst chroma-test--audited-built-in-libraries
   '(tab-bar tab-line hl-line display-line-numbers isearch replace
-    paren compile diff-mode ediff ansi-color cus-edit wid-edit org
+    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
     pulse sh-script dired help-mode info calendar whitespace message
     smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
   "Built-in libraries included in Chroma's reverse face audit.")
@@ -125,7 +125,7 @@
              (font-lock-function-name-face :foreground primary-emphasis)
              (font-lock-keyword-face :foreground primary-vivid)
              (font-lock-string-face :foreground secondary-emphasis)
-             (font-lock-type-face :foreground primary-vivid)
+             (font-lock-type-face :foreground font-lock-type)
              (font-lock-variable-name-face :foreground secondary-vivid)
              (mode-line
               :foreground mode-line-source-foreground
@@ -143,6 +143,50 @@
              (isearch
               :foreground isearch-foreground
               :background isearch-background)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation)))))
+
+(ert-deftest chroma-faces-reviewed-low-confidence-use-dedicated-roles ()
+  "Reviewed ambiguous faces use their source-specific semantic roles."
+  (dolist
+      (expectation
+       '((compilation-mode-line-exit :foreground compilation-exit)
+         (custom-button-pressed-unraised
+          :foreground custom-button-pressed-unraised)
+         (escape-glyph :foreground special-glyph)
+         (homoglyph :foreground special-glyph)
+         (nobreak-hyphen :foreground special-glyph)
+         (font-lock-type-face :foreground font-lock-type)
+         (ansi-color-magenta
+          :foreground secondary-ansi-magenta
+          :background secondary-ansi-magenta)
+         (ansi-color-bright-magenta
+          :foreground secondary-ansi-bright-magenta
+          :background secondary-ansi-bright-magenta)
+         (ansi-color-green
+          :foreground secondary-ansi-green
+          :background secondary-ansi-green)
+         (ansi-color-bright-green
+          :foreground secondary-ansi-bright-green
+          :background secondary-ansi-bright-green)
+         (blink-matching-paren-offscreen :foreground blink-offscreen)
+         (custom-state :foreground custom-state-foreground)
+         (widget-documentation :foreground custom-state-foreground)
+         (org-agenda-done :foreground org-done)
+         (org-done :foreground org-done)
+         (org-scheduled :foreground org-scheduled)
+         (org-scheduled-today :foreground org-scheduled)
+         (message-header-cc :foreground message-header-cc)
+         (message-header-name :foreground message-header-name)
+         (message-header-newsgroups :foreground message-header-newsgroups)
+         (message-header-other :foreground message-header-other)
+         (message-header-subject :foreground message-header-subject)
+         (message-header-to :foreground message-header-to)
+         (message-mml :foreground message-mml)
+         (message-separator :foreground message-separator)
+         (sh-quoted-exec :foreground sh-quoted-exec)
+         (speedbar-button-face :foreground speedbar-button)
+         (speedbar-highlight-face :background speedbar-highlight)))
     (should (equal (chroma-face-mapping (car expectation))
                    (cdr expectation)))))
 
@@ -532,8 +576,8 @@
        '((ansi-color-red
           :foreground primary-ansi-mid :background primary-ansi-mid)
          (ansi-color-bright-green
-          :foreground secondary-ansi-high
-          :background secondary-ansi-high)
+          :foreground secondary-ansi-bright-green
+          :background secondary-ansi-bright-green)
          (dired-broken-symlink
           :foreground contrast-yellow-1 :background contrast-red-1)
          (help-key-binding

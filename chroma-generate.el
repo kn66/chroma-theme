@@ -51,9 +51,85 @@
 (defconst chroma-generate-luminance-quantization-tolerance 0.004
   "Allowed relative-luminance error from literal 8-bit quantization.")
 
+(defconst chroma-generate-reviewed-low-confidence-selectors
+  '(((ansi-color-bright-magenta . :background) . secondary)
+    ((ansi-color-bright-magenta . :foreground) . secondary)
+    ((ansi-color-magenta . :background) . secondary)
+    ((ansi-color-magenta . :foreground) . secondary)
+    ((ansi-color-bright-green . :background) . secondary)
+    ((ansi-color-bright-green . :foreground) . secondary)
+    ((ansi-color-green . :background) . secondary)
+    ((ansi-color-green . :foreground) . secondary)
+    ;; Status meanings remain authoritative when green happens to project
+    ;; weakly onto the fitted source axis.
+    ((compilation-mode-line-exit . :foreground) . secondary)
+    ((eww-valid-certificate . :foreground) . secondary)
+    ((ert-test-result-expected . :background) . secondary)
+    ((message-mml . :foreground) . secondary)
+    ((org-agenda-done . :foreground) . secondary)
+    ((org-done . :foreground) . secondary)
+    ((org-scheduled-today . :foreground) . secondary)
+    ((org-scheduled . :foreground) . secondary)
+    ;; These source pairs cross the fitted axis between dark and light.  Keep
+    ;; their stable semantic families rather than changing meaning by variant.
+    ((custom-button-pressed-unraised . :foreground) . secondary)
+    ((custom-state . :foreground) . secondary)
+    ((escape-glyph . :foreground) . secondary)
+    ((homoglyph . :foreground) . secondary)
+    ((nobreak-hyphen . :foreground) . secondary)
+    ((font-lock-type-face . :foreground) . primary)
+    ((link-visited . :foreground) . secondary)
+    ((match . :background) . secondary)
+    ((message-header-cc . :foreground) . primary)
+    ((message-header-name . :foreground) . primary)
+    ((message-header-newsgroups . :foreground) . primary)
+    ((message-header-other . :foreground) . primary)
+    ((message-header-subject . :foreground) . primary)
+    ((message-header-to . :foreground) . primary)
+    ((message-separator . :foreground) . primary)
+    ((sh-quoted-exec . :foreground) . primary)
+    ((speedbar-highlight-face . :background) . secondary)
+    ((blink-matching-paren-offscreen . :foreground) . secondary)
+    ((speedbar-button-face . :foreground) . secondary)
+    ((success . :foreground) . secondary)
+    ((widget-documentation . :foreground) . secondary)
+    ;; Added/B/lower states consistently use Secondary; their removed/A/upper
+    ;; counterparts consistently use Primary.
+    ((diff-added . :background) . secondary)
+    ((diff-indicator-added . :foreground) . secondary)
+    ((diff-refine-added . :background) . secondary)
+    ((ediff-current-diff-B . :background) . secondary)
+    ((ediff-fine-diff-B . :background) . secondary)
+    ((smerge-lower . :background) . secondary)
+    ((smerge-refined-added . :background) . secondary)
+    ;; Gnus mail/news ownership is stable across the source hue changes.
+    ((gnus-group-mail-3-empty . :foreground) . primary)
+    ((gnus-group-mail-low-empty . :foreground) . primary)
+    ((gnus-group-news-1-empty . :foreground) . secondary)
+    ((gnus-group-news-low-empty . :foreground) . secondary)
+    ((gnus-summary-normal-read . :foreground) . secondary)
+    ;; Search groups retain their reviewed odd/even distinction as a complete
+    ;; foreground/background pair.
+    ((isearch-group-1 . :background) . primary)
+    ((isearch-group-1 . :foreground) . primary)
+    ((isearch-group-2 . :background) . secondary)
+    ((isearch-group-2 . :foreground) . secondary)
+    ((isearch . :background) . primary)
+    ((isearch . :foreground) . primary)
+    ((org-dispatcher-highlight . :foreground) . primary)
+    ((whitespace-line . :foreground) . secondary))
+  "Reviewed selector decisions for ambiguous upstream color observations.
+
+Keys are (FACE . ATTRIBUTE) pairs and values are the approved semantic
+selectors.  Every entry was checked across dark and light definitions,
+related face families, and effective foreground/background use.  The list
+also retains threshold-adjacent decisions so a small fitted-axis change does
+not silently change their meaning.  A mapping that later stops matching its
+reviewed selector returns to `needs-review'.")
+
 (defconst chroma-generate-audited-built-in-libraries
   '(tab-bar tab-line hl-line display-line-numbers isearch replace
-    paren compile diff-mode ediff ansi-color cus-edit wid-edit org
+    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
     pulse sh-script dired help-mode info calendar whitespace message
     smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
   "Built-in libraries included in the development-time selector audit.")
@@ -731,14 +807,22 @@ as low-confidence review cases rather than silently changing selector."
         (when selector (cl-pushnew selector selectors))))
     (nreverse selectors)))
 
+(defun chroma-generate--reviewed-selector (face attribute)
+  "Return the reviewed selector for FACE and ATTRIBUTE, or nil."
+  (alist-get (cons face attribute)
+             chroma-generate-reviewed-low-confidence-selectors
+             nil nil #'equal))
+
 (defun chroma-generate-audit-mappings (&optional mappings)
   "Audit reviewed face MAPPINGS against upstream color tendencies.
 
 Return a plist containing the fitted `:axis' and one entry per directly
 colored mapped attribute under `:entries'.  An entry is `accepted' when its
 reviewed static selector agrees with the automatic classification,
-`needs-review' when the source vote is ambiguous, and `differs' when the
-reviewed semantic choice intentionally differs from the color tendency."
+`reviewed' when an ambiguous source vote has an explicit matching decision,
+`needs-review' when an ambiguous result is new or no longer matches that
+decision, and `differs' when the reviewed semantic choice intentionally
+differs from a confident color tendency."
   (let* ((selected-mappings (or mappings (chroma-face-mappings)))
          (faces (delete-dups (mapcar #'car selected-mappings)))
          (observations (chroma-generate-source-observations faces))
@@ -756,9 +840,15 @@ reviewed semantic choice intentionally differs from the color tendency."
               (plist-get classification :selector))
              (classification-status
               (plist-get classification :status))
+             (reviewed-selector
+              (chroma-generate--reviewed-selector face attribute))
              (status
               (cond
-               ((eq classification-status 'needs-review) 'needs-review)
+               ((eq classification-status 'needs-review)
+                (if (and reviewed-selector
+                         (memq reviewed-selector mapped-selectors))
+                    'reviewed
+                  'needs-review))
                ((memq automatic-selector mapped-selectors) 'accepted)
                (t 'differs))))
         (push (append
@@ -837,7 +927,7 @@ finite face plan."
     (princ (format "Primary source axis: %.2f degrees\n" axis))
     (princ (format "Summary: %S\n" summary))
     (dolist (entry (plist-get audit :entries))
-      (unless (eq (plist-get entry :status) 'accepted)
+      (unless (memq (plist-get entry :status) '(accepted reviewed))
         (princ
          (format "%s %s/%s auto=%s mapped=%S confidence=%.3f source=%s\n"
                  (upcase (symbol-name (plist-get entry :status)))
