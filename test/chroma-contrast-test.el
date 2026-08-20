@@ -22,10 +22,6 @@
     (diff-removed "#553333" "#ffeeee")
     (diff-refine-added "#22aa22" "#bbffbb")
     (diff-refine-removed "#aa2222" "#ffcccc")
-    (magit-base "#555522" "#ffffcc")
-    (magit-removed-highlight "#663333" "#eecccc")
-    (magit-added-highlight "#336633" "#cceecc")
-    (magit-base-highlight "#666622" "#eeeebb")
     (fine-a "#aa2222" "#ffbbbb")
     (fine-ancestor "#009591" "#00c5c0")
     (fine-b "#22aa22" "#aaffaa")
@@ -65,9 +61,26 @@
     (org-scheduled "#98fb98" "#006400")
     (speedbar-highlight "#2e8b57" "#00ff00")
     (ansi-bright-green "#00ee00" "#00ee00")
-    (blink-offscreen "#00ff00" "#00ff00")
+    (source-green-1 "#00ff00" "#00ff00")
     (custom-state-foreground "#32cd32" "#006400")
-    (speedbar-button "#00cd00" "#008b00"))
+    (speedbar-button "#00cd00" "#008b00")
+    (erc-direct-message "#cd5c5c" "#cd5c5c")
+    (erc-notice "#6a5acd" "#6a5acd")
+    (eshell-ls-archive "#da70d6" "#da70d6")
+    (eshell-ls-executable "#00ff00" "#228b22")
+    (ibuffer-locked "#bc8f8f" "#8b2323")
+    (proced-resource "#6d5cc3" "#6d5cc3")
+    (proced-memory-low "#8bcd50" "#00ff00")
+    (proced-memory-medium "#cdcd00" "#ffa500")
+    (proced-pgrp "#4785bf" "#4785bf")
+    (proced-pid "#5085ef" "#5085ef")
+    (proced-ppid "#5085bf" "#5085bf")
+    (proced-sess "#41729f" "#41729f")
+    (proced-time-colon "#8b008b" "#8b008b")
+    (rcirc-bright-nick "#7fffd4" "#5f9ea0")
+    (rcirc-other-nick "#eedd82" "#b8860b")
+    (rcirc-prompt "#00ffff" "#00008b")
+    (rcirc-server "#ff7f24" "#b22222"))
   "Dark and light upstream colors for source-relative hue tokens.")
 
 (defconst chroma-test--contrast-critical-token-references
@@ -130,7 +143,18 @@
     (special-glyph "#00ffff" "#a52a2a")
     (match "#3a5fcd" "#fff68f")
     (message-separator "#b0e2ff" "#a52a2a")
-    (sh-quoted-exec "#fa8072" "#ff00ff"))
+    (sh-quoted-exec "#fa8072" "#ff00ff")
+    (erc-input "#a52a2a" "#a52a2a")
+    (erc-prompt-background "#b2dfee" "#b2dfee")
+    (eshell-ls-backup "#ffa07a" "#ff4500")
+    (eshell-ls-clutter "#ff4500" "#ff4500")
+    (eshell-ls-readonly "#ffc0cb" "#a52a2a")
+    (eshell-ls-special "#ff00ff" "#ff00ff")
+    (proced-emacs-pid "#a020f0" "#a020f0")
+    (proced-executable "#00bfff" "#0000ff")
+    (proced-memory-high "#ffa500" "#ff4500")
+    (rcirc-my-nick "#87cefa" "#0000ff")
+    (rcirc-nick-in-message "#00ffff" "#a020f0"))
   "Dark and light sources for finite contrast-critical hue tokens.")
 
 (defun chroma-test--hex-channel (color offset)
@@ -550,8 +574,17 @@
                   message-header-other message-header-subject
                   message-header-to message-mml message-separator
                   org-scheduled sh-quoted-exec speedbar-highlight
-                  blink-offscreen custom-state-foreground
-                  speedbar-button))
+                  source-green-1 custom-state-foreground
+                  speedbar-button contrast-red-1 erc-direct-message
+                  erc-input erc-notice eshell-ls-archive
+                  eshell-ls-backup eshell-ls-clutter
+                  eshell-ls-executable eshell-ls-readonly
+                  eshell-ls-special ibuffer-locked proced-resource
+                  proced-emacs-pid proced-executable proced-memory-high
+                  proced-memory-low proced-memory-medium proced-pgrp
+                  proced-pid proced-ppid proced-sess proced-time-colon
+                  rcirc-bright-nick rcirc-my-nick rcirc-nick-in-message
+                  rcirc-other-nick rcirc-prompt rcirc-server))
       (dolist (variant chroma-supported-variants)
         (let* ((token (car expectation))
                (source (nth (if (eq variant 'dark) 1 2) expectation))
@@ -624,7 +657,7 @@
                 (chroma-test--relative-luminance
                  (chroma-palette-color hue token variant)))
               '(ansi-low ansi-low-bright ansi-mid ansi-mid-bright
-                ansi-upper ansi-upper-bright ansi-high ansi-vivid))))
+                ansi-upper-bright ansi-high ansi-vivid))))
         (while (cdr tones)
           (should (< (car tones) (cadr tones)))
           (setq tones (cdr tones)))))))
@@ -689,12 +722,26 @@
    (chroma-palette-color 'neutral 'bg-ui 'light)
    10.0))
 
-(defconst chroma-contrast-test--audited-built-in-libraries
-  '(tab-bar tab-line hl-line display-line-numbers isearch replace
-    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
-    pulse sh-script dired help-mode info calendar whitespace message
-    smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
-  "Built-in libraries loaded by effective color-pair tests.")
+(ert-deftest chroma-contrast-expanded-neutral-tokens-match-upstream ()
+  "Expanded neutral tokens reproduce their direct upstream colors exactly."
+  (dolist
+      (expectation
+       '((fixed-gray-70 "#b3b3b3" "#b3b3b3")
+         (fixed-gray-85 "#d9d9d9" "#d9d9d9")
+         (fixed-dim-gray "#696969" "#696969")
+         (fg-eshell-unreadable "#a9a9a9" "#4d4d4d")
+         (rst-level-1-background "#262626" "#d9d9d9")
+         (rst-level-2-background "#383838" "#c7c7c7")
+         (rst-level-3-background "#4a4a4a" "#b5b5b5")
+         (rst-level-4-background "#5c5c5c" "#a3a3a3")
+         (rst-level-5-background "#6e6e6e" "#919191")
+         (rst-level-6-background "#7f7f7f" "#7f7f7f")))
+    (should (equal (chroma-palette-color
+                    'neutral (car expectation) 'dark)
+                   (nth 1 expectation)))
+    (should (equal (chroma-palette-color
+                    'neutral (car expectation) 'light)
+                   (nth 2 expectation)))))
 
 (defun chroma-test--standard-color-hex (color)
   "Return standard six-digit hexadecimal RGB for COLOR."
@@ -711,7 +758,7 @@
 
 (ert-deftest chroma-contrast-direct-face-pairs-retain-source-contrast ()
   "Every direct foreground/background pair retains upstream contrast."
-  (dolist (library chroma-contrast-test--audited-built-in-libraries)
+  (dolist (library chroma-audited-built-in-libraries)
     (require library nil t))
   (let ((old-display-type (frame-parameter nil 'display-type))
         (old-background-mode (frame-parameter nil 'background-mode))
@@ -731,7 +778,9 @@
         (cl-letf (((symbol-function 'display-color-cells)
                    (lambda (&optional _frame) 16777216))
                   ((symbol-function 'window-system)
-                   (lambda (&optional _frame) 'pgtk)))
+                   (lambda (&optional _frame) 'pgtk))
+                  ((symbol-function 'display-supports-face-attributes-p)
+                   (lambda (_attributes &optional _frame) t)))
           (dolist (mapping (chroma-face-mappings))
             (when (and (facep (car mapping))
                        (plist-member (cdr mapping) :foreground)

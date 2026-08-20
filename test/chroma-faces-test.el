@@ -11,16 +11,9 @@
                            (or load-file-name buffer-file-name)))
   "Chroma project directory used by theme-loading tests.")
 
-(defconst chroma-test--audited-built-in-libraries
-  '(tab-bar tab-line hl-line display-line-numbers isearch replace
-    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
-    pulse sh-script dired help-mode info calendar whitespace message
-    smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
-  "Built-in libraries included in Chroma's reverse face audit.")
-
 (defun chroma-test--load-audited-built-ins ()
   "Load all libraries included in the built-in face audit."
-  (dolist (library chroma-test--audited-built-in-libraries)
+  (dolist (library chroma-audited-built-in-libraries)
     (require library nil t)))
 
 (require 'chroma-theme)
@@ -63,6 +56,36 @@
       (chroma-theme-refresh)
       (unless was-enabled
         (disable-theme 'chroma)))))
+
+(ert-deftest chroma-theme-after-load-skips-unchanged-face-set ()
+  "An unrelated load does not rebuild every already registered face."
+  (let ((was-enabled (memq 'chroma custom-enabled-themes))
+        (calls 0)
+        (original (symbol-function 'chroma-theme--set-faces)))
+    (unwind-protect
+        (progn
+          (unless was-enabled (enable-theme 'chroma))
+          (chroma-theme-refresh)
+          (cl-letf (((symbol-function 'chroma-theme--set-faces)
+                     (lambda (&rest arguments)
+                       (setq calls (1+ calls))
+                       (apply original arguments))))
+            (chroma-theme--after-load "unrelated.el"))
+          (should (= calls 0)))
+      (unless was-enabled (disable-theme 'chroma)))))
+
+(ert-deftest chroma-theme-unload-removes-global-hooks ()
+  "The unload function removes hooks that would call unloaded code."
+  (unwind-protect
+      (progn
+        (should (memq #'chroma-theme--after-load after-load-functions))
+        (should (memq #'chroma-theme--after-enable enable-theme-functions))
+        (chroma-theme-unload-function)
+        (should-not (memq #'chroma-theme--after-load after-load-functions))
+        (should-not
+         (memq #'chroma-theme--after-enable enable-theme-functions)))
+    (add-hook 'after-load-functions #'chroma-theme--after-load)
+    (add-hook 'enable-theme-functions #'chroma-theme--after-enable)))
 
 (ert-deftest chroma-theme-enable-resolves-post-load-setq ()
   "Enabling Chroma rebuilds specs changed by a post-load `setq'."
@@ -363,6 +386,7 @@
          show-paren-match-expression query-replace
          completions-annotations completions-highlight
          completions-first-difference compilation-error
+         completion-preview-common
          compilation-warning compilation-info compilation-line-number
          compilation-column-number diff-hunk-header line-number-current-line
          dired-directory dired-flagged dired-header dired-ignored
@@ -391,7 +415,9 @@
         (cl-letf (((symbol-function 'display-color-cells)
                    (lambda (&optional _frame) 16777216))
                   ((symbol-function 'window-system)
-                   (lambda (&optional _frame) 'pgtk)))
+                   (lambda (&optional _frame) 'pgtk))
+                  ((symbol-function 'display-supports-face-attributes-p)
+                   (lambda (_attributes &optional _frame) t)))
           (dolist (mapping (chroma-face-mappings))
             (let ((face (car mapping)))
               (when (and (facep face)
@@ -438,7 +464,9 @@
         (cl-letf (((symbol-function 'display-color-cells)
                    (lambda (&optional _frame) 16777216))
                   ((symbol-function 'window-system)
-                   (lambda (&optional _frame) 'pgtk)))
+                   (lambda (&optional _frame) 'pgtk))
+                  ((symbol-function 'display-supports-face-attributes-p)
+                   (lambda (_attributes &optional _frame) t)))
           (dolist (face (face-list))
             (unless (string-prefix-p "chroma--base-" (symbol-name face))
               (let (direct-color-p)
@@ -566,6 +594,69 @@
           :foreground fg-fixed-light :background bg-fixed-gray-50)
          (eww-form-textarea
           :foreground fixed-black :background bg-fixed-gray-192)))
+    (should (equal (chroma-face-mapping (car expectation))
+                   (cdr expectation)))))
+
+(ert-deftest chroma-faces-expanded-built-ins-use-exact-roles ()
+  "Expanded Emacs 30 coverage maps every direct source color exactly."
+  (dolist
+      (expectation
+       '((breakpoint-disabled :foreground breakpoint-disabled)
+         (breakpoint-enabled :foreground contrast-red-1)
+         (erc-direct-msg-face :foreground erc-direct-message)
+         (erc-error-face :foreground contrast-red-1)
+         (erc-input-face :foreground erc-input)
+         (erc-my-nick-face :foreground erc-input)
+         (erc-nick-msg-face :foreground erc-direct-message)
+         (erc-notice-face :foreground erc-notice)
+         (erc-prompt-face
+          :foreground fixed-black :background erc-prompt-background)
+         (eshell-ls-archive :foreground eshell-ls-archive)
+         (eshell-ls-backup :foreground eshell-ls-backup)
+         (eshell-ls-clutter :foreground eshell-ls-clutter)
+         (eshell-ls-executable :foreground eshell-ls-executable)
+         (eshell-ls-missing :foreground contrast-red-1)
+         (eshell-ls-product :foreground eshell-ls-backup)
+         (eshell-ls-readonly :foreground eshell-ls-readonly)
+         (eshell-ls-special :foreground eshell-ls-special)
+         (eshell-ls-unreadable :foreground eshell-ls-unreadable)
+         (ibuffer-locked-buffer :foreground ibuffer-locked)
+         (log-view-file
+          :background ((light . log-view-file-background)))
+         (log-view-message
+          :background ((light . log-view-message-background)))
+         (nxml-glyph
+          :foreground fixed-black :background bg-fixed-light-gray)
+         (proced-cpu :foreground proced-resource)
+         (proced-emacs-pid :foreground proced-emacs-pid)
+         (proced-executable :foreground proced-executable)
+         (proced-interruptible-sleep-status-code
+          :foreground proced-interruptible-sleep)
+         (proced-mem :foreground proced-resource)
+         (proced-memory-high-usage :foreground proced-memory-high)
+         (proced-memory-low-usage :foreground proced-memory-low)
+         (proced-memory-medium-usage :foreground proced-memory-medium)
+         (proced-pgrp :foreground proced-pgrp)
+         (proced-pid :foreground proced-pid)
+         (proced-ppid :foreground proced-ppid)
+         (proced-run-status-code :foreground proced-run-status)
+         (proced-sess :foreground proced-sess)
+         (proced-session-leader-pid :foreground proced-pid)
+         (proced-time-colon :foreground proced-time-colon)
+         (proced-uninterruptible-sleep-status-code
+          :foreground contrast-red-1)
+         (rcirc-bright-nick :foreground rcirc-bright-nick)
+         (rcirc-my-nick :foreground rcirc-my-nick)
+         (rcirc-nick-in-message :foreground rcirc-nick-in-message)
+         (rcirc-other-nick :foreground rcirc-other-nick)
+         (rcirc-prompt :foreground rcirc-prompt)
+         (rcirc-server :foreground rcirc-server)
+         (rst-level-1 :background rst-level-1-background)
+         (rst-level-2 :background rst-level-2-background)
+         (rst-level-3 :background rst-level-3-background)
+         (rst-level-4 :background rst-level-4-background)
+         (rst-level-5 :background rst-level-5-background)
+         (rst-level-6 :background rst-level-6-background)))
     (should (equal (chroma-face-mapping (car expectation))
                    (cdr expectation)))))
 
@@ -842,7 +933,9 @@
         (cl-letf (((symbol-function 'display-color-cells)
                    (lambda (&optional _frame) 16777216))
                   ((symbol-function 'window-system)
-                   (lambda (&optional _frame) 'pgtk)))
+                   (lambda (&optional _frame) 'pgtk))
+                  ((symbol-function 'display-supports-face-attributes-p)
+                   (lambda (_attributes &optional _frame) t)))
           (modify-frame-parameters
            nil '((display-type . color) (background-mode . light)))
           (chroma-build-face-specs)

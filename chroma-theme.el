@@ -54,12 +54,16 @@
         (push (cadr setting) faces)))
     faces))
 
-(defun chroma-theme--set-faces (&optional immediate)
-  "Register Chroma face specs, applying them when IMMEDIATE is non-nil."
-  (let* ((settings (chroma-build-face-specs))
+(defun chroma-theme--set-faces (&optional immediate mappings)
+  "Register Chroma face specs, applying them when IMMEDIATE is non-nil.
+
+MAPPINGS may select an incremental subset.  A partial refresh never treats
+faces outside that subset as stale."
+  (let* ((settings (chroma-build-face-specs nil mappings))
          (new-faces (mapcar #'car settings))
          (stale-faces
-          (seq-difference (chroma-theme--registered-faces) new-faces)))
+          (unless mappings
+            (seq-difference (chroma-theme--registered-faces) new-faces))))
     ;; Keep color-scheme metadata synchronized for callers that inspect theme
     ;; properties.  The actual frame mode follows the explicit `default'
     ;; foreground and background applied below.
@@ -80,6 +84,23 @@
             settings))
     (when immediate
       (mapc #'custom-theme-recalc-face stale-faces))))
+
+(defun chroma-theme--mappings-needing-refresh ()
+  "Return mappings whose face or upstream proxy changed since registration."
+  (let ((registered (chroma-theme--registered-faces)) dirty)
+    (dolist (mapping (chroma-face-mappings))
+      (let ((face (car mapping)))
+        (when (and (facep face)
+                   (or (not (memq face registered))
+                       (and
+                        (not (eq face 'default))
+                        (not
+                         (equal
+                          (get (chroma--base-face-symbol face)
+                               'face-defface-spec)
+                          (get face 'face-defface-spec))))))
+          (push mapping dirty))))
+    (nreverse dirty)))
 
 ;;;###autoload
 (defun chroma-theme-refresh ()
@@ -105,7 +126,7 @@ changes refresh the theme automatically."
       (chroma-theme--set-faces t))))
 
 (defun chroma-theme--after-load (_file)
-  "Refresh Chroma after _FILE may define additional built-in faces."
+  "Refresh changed Chroma mappings after loading _FILE."
   (when (and (memq 'chroma custom-enabled-themes)
              (not chroma-theme--refreshing))
     ;; `custom-theme-set-faces' records settings for a face defined during a
@@ -113,9 +134,17 @@ changes refresh the theme automatically."
     ;; until that load finishes.  Chroma is already enabled and trusted at
     ;; this point, so locally lift that internal guard.  Reenabling Chroma
     ;; here would unexpectedly change the precedence of multiple themes.
-    (let ((chroma-theme--refreshing t)
-          (custom--inhibit-theme-enable nil))
-      (chroma-theme--set-faces t))))
+    (let ((mappings (chroma-theme--mappings-needing-refresh)))
+      (when mappings
+        (let ((chroma-theme--refreshing t)
+              (custom--inhibit-theme-enable nil))
+          (chroma-theme--set-faces t mappings))))))
+
+(defun chroma-theme-unload-function ()
+  "Remove Chroma's global hooks before unloading its feature."
+  (remove-hook 'after-load-functions #'chroma-theme--after-load)
+  (remove-hook 'enable-theme-functions #'chroma-theme--after-enable)
+  nil)
 
 (chroma-theme--set-faces)
 (add-hook 'after-load-functions #'chroma-theme--after-load)

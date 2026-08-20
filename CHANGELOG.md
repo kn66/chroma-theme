@@ -4,6 +4,23 @@ Notable changes to Chroma Theme are documented in this file.
 
 ## Unreleased
 
+- Expand the reverse Emacs 30 audit to 53 built-in libraries and add complete
+  source-relative and contrast-critical mappings for GDB breakpoint, Eshell file-state, Ibuffer,
+  Proced, ERC, Rcirc, Log View, NXML, and RST faces.  Model graphical
+  `supports` conditions so structural Completion Preview emphasis remains
+  upstream-owned instead of receiving its fallback-only gray background.
+- Baseline every intentional high-confidence selector difference.  New
+  Primary/Secondary/Neutral divergences now fail ERT instead of joining a
+  persistent report, while reviewed low-confidence decisions remain explicit.
+- Apply only newly defined or upstream-redefined face mappings after library
+  loads, and remove Chroma's global hooks when its feature unloads.
+- Add Emacs 30.1/30.2 GitHub Actions verification, an external-fixture
+  preflight, an aggregate `make verify` target, and reproducible Dark/Light PNG
+  visual reviews built from real Emacs Lisp, Org, Diff, and Completion Preview
+  faces.
+- Remove unused source-specific semantic roles and 10 unreachable palette
+  token families while documenting generic semantic roles as the supported
+  extension surface for package mappings.
 - Load ERT as part of the built-in audit and review all 56 resulting
   low-confidence selector outcomes, including the 47 originally reported.
   Record their intended Primary/Secondary ownership so later mapping drift

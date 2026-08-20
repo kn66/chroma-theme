@@ -2,6 +2,19 @@
 
 Chroma Theme is a color theme that preserves the design of Emacs's standard faces as much as possible while replacing only their color layer.
 
+** Preview
+
+The screenshots are generated from real Emacs Lisp, Org, Diff, and Completion
+Preview faces with ~make visuals~.
+
+*** Dark
+
+[[file:screenshots/chroma-dark.png]]
+
+*** Light
+
+[[file:screenshots/chroma-light.png]]
+
 Whereas conventional themes redesign entire faces, including their font, weight, underline, box, and inheritance, Chroma owns only the decision of which semantic color each face should use. Its authored face mappings contain only ~:foreground~ and ~:background~ replacements.
 
 ** Design
@@ -19,6 +32,11 @@ Emacs face mappings
 - The palette is a finite set of reviewed HEX values selected in advance. A development-time generator can derive candidates from upstream colors, but Chroma does not calculate hue, lightness, saturation, or contrast at runtime.
 - Semantic roles describe how colors are used, with names such as ~bg-main~, ~fg-dim~, ~primary~, ~secondary~, ~error~, and ~match~.
 - Face mappings contain only associations such as ~font-lock-keyword-face → primary-vivid~; they know nothing about HEX values.
+
+~chroma-resolve-semantic-colors~ is also the supported extension surface for
+package-specific mappings.  Its generic UI/text roles are retained even when
+the built-in mapping set does not currently consume them; source-specific
+palette tokens without a mapped or documented consumer are removed.
 
 The data structure is ~variant → display class → palette~. Chroma currently includes independent true-color palettes for the dark and light variants. Future 256-color and 16-color palettes can be added independently of the existing mappings.
 
@@ -207,16 +225,25 @@ The initial release maps the major built-in faces in the following categories:
 - Diff, Ediff, Compilation diagnostics
 - Dired, Help, Info, Calendar, Whitespace
 - Gnus, Message, Smerge, EPA, ERT, EWW/SHR, Bookmark, Eshell
+- Eshell file states, Ibuffer, Proced, GDB breakpoints, Log View
+- ERC, Rcirc, NXML glyphs, RST section levels
 - Speedbar, TTY menu, Edmacro
 - Explicit Org colors, Customize, Widget, ANSI color
 
-Mapped faces are added to the theme spec only after a ~facep~ check, since availability varies by Emacs version and loaded libraries. If a built-in library defines new faces after the theme is enabled, a lightweight ~after-load-functions~ hook rebuilds the mappings and their upstream proxies.
+Mapped faces are added to the theme spec only after a ~facep~ check, since availability varies by Emacs version and loaded libraries. If a library defines or redefines a mapped face after the theme is enabled, a lightweight ~after-load-functions~ hook applies only those new or changed mappings and upstream proxies. Unrelated library loads do not reapply the complete theme.
 
-The Emacs 30 built-in coverage is also checked in reverse: after the audited
+The Emacs 30 built-in coverage is also checked in reverse across 53 libraries:
+after the audited
 libraries are loaded under a true-color display model, every face with a direct
 simple foreground or background must have a Chroma mapping for exactly those
 attributes.  This catches newly introduced or previously omitted direct colors
 instead of validating only the mappings already listed by Chroma.
+
+The audit models a capable graphical display, including ~supports~ conditions
+for underline and font weight.  Thus a color used only as a fallback when the
+GUI cannot render structural emphasis is not incorrectly forced onto the normal
+GUI branch; for example, ~completion-preview-common~ keeps its upstream
+underline instead of gaining the fallback gray background.
 
 Faces that are chromatic in Emacs's standard true-color definitions are assigned to either Primary or Secondary. For example, ~region~, ~secondary-selection~, ~highlight~, Font Lock comments, and completion highlights retain color instead of becoming neutral, using finite tones of the two selected hues. Inherited faces such as ~hl-line~ receive the mapped color from their standard parent. Shadows and ordinary UI backgrounds, which are gray in the standard definitions, remain neutral roles.
 
@@ -262,7 +289,8 @@ External mappings are kept separately in [[chroma-faces-external.el][chroma-face
 ** Supported Environments
 
 - Target Emacs version: 30.1 or later
-- Development and verification environment: Emacs 30.2
+- Local development environment: Emacs 30.2
+- Continuous verification matrix: Emacs 30.1 and 30.2
 - Officially supported display: GUI / true-color
 - Supported variants: dark / light
 
@@ -294,10 +322,12 @@ These calculations generate and validate review candidates during development.  
 ** Development
 
 #+begin_src sh
-make test       # All ERT tests
+make verify     # Compile, ERT, Checkdoc, audit, diff check, and cleanup
+make test       # Dependency-free ERT tests
 make compile    # Byte-compile
 make checkdoc   # Docstring/style checks
 make reports    # Audit reviewed mappings against upstream color tendencies
+make visuals    # Regenerate Dark/Light GUI screenshots
 make clean-elc  # Remove generated .elc files
 #+end_src
 
@@ -334,14 +364,16 @@ Run the complete built-in audit with:
 make reports
 #+end_src
 
-The report lists the fitted source axis, outcome counts, every newly discovered
-unmapped direct color, and every unresolved low-confidence or differing mapping
-together with its upstream dark/light colors.  Low-confidence decisions that
-have been checked against their related face family and effective color context
-are recorded in ~chroma-generate-reviewed-low-confidence-selectors~.  A later
-mapping change that disagrees with a recorded decision reopens it for review.
-This preserves face-by-face ownership while reducing ordinary semantic
-classification to a reproducible color measurement.
+The report lists the fitted source axis and outcome counts, then prints every
+newly discovered unmapped direct color and every unreviewed low-confidence or
+confidently differing mapping together with its upstream dark/light colors.
+Reviewed ambiguous choices live in
+~chroma-generate-reviewed-low-confidence-selectors~; intentional semantic
+differences live in ~chroma-generate-reviewed-differing-selectors~.  Tests
+require the current confident-difference set to match that baseline exactly,
+so a new Primary/Secondary/Neutral divergence cannot hide in a noisy report.
+A later mapping or upstream change that disagrees with either decision reopens
+it for review.
 
 For a prospective or existing face, evaluate
 ~chroma-generate-print-face-plan~.  The returned review plan contains a dedicated
@@ -356,6 +388,11 @@ separate from the dependency-free default test run.
 make bootstrap-external  # Clone and verify the pinned audit fixtures
 make test-external       # Audit real external defface forms and color pairs
 #+end_src
+
+~make test-external~ performs a fixture preflight and points to
+~make bootstrap-external~ when a checkout is missing.  GitHub Actions runs the
+dependency-free verification on Emacs 30.1 and 30.2 and the pinned external
+integration suite on Emacs 30.2.
 
 Tests are divided into palette, core, face-invariant, and contrast suites. For non-color information in particular, they verify that mappings contain only ~:foreground~ and ~:background~, that every built-in mapping replaces all and only colors explicitly set upstream, that generated specs inherit an exact runtime proxy of the upstream ~defface~, and that representative faces retain their effective structural attributes. Regression tests also cover duplicate external package face names, semantic roles, Primary's share of chromatic attributes, and the relative ordering of lightness, refinement, and boundaries found in the original faces.
 

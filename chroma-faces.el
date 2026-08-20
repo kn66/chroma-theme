@@ -40,6 +40,20 @@
 (defconst chroma-face-color-attributes '(:foreground :background)
   "Face attributes Chroma mappings are allowed to set.")
 
+(defconst chroma-audited-built-in-libraries
+  '(tab-bar tab-line hl-line display-line-numbers isearch replace
+    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
+    pulse sh-script dired help-mode info calendar whitespace message
+    smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm
+    package flymake eglot xref completion-preview ibuffer proced calc
+    vc-dir log-view grep gdb-mi shell comint em-ls rmail rcirc erc
+    nxml-mode css-mode rst)
+  "Built-in libraries with face-by-face Chroma audit decisions.
+
+This is the single source of truth shared by the reverse coverage audit,
+selector report, and effective contrast tests.  A library remains listed
+even when all its faces are colorless or inherited-only.")
+
 (defconst chroma-face-mappings-basic
   '((default :foreground fg-main :background bg-main)
     (cursor :background primary-emphasis)
@@ -413,6 +427,63 @@
     (tty-menu-selected-face :background secondary-alert))
   "Color mappings for selected built-in application faces.")
 
+(defconst chroma-face-mappings-additional-built-ins
+  '((breakpoint-disabled :foreground breakpoint-disabled)
+    (breakpoint-enabled :foreground contrast-red-1)
+    (erc-direct-msg-face :foreground erc-direct-message)
+    (erc-error-face :foreground contrast-red-1)
+    (erc-input-face :foreground erc-input)
+    (erc-my-nick-face :foreground erc-input)
+    (erc-nick-msg-face :foreground erc-direct-message)
+    (erc-notice-face :foreground erc-notice)
+    (erc-prompt-face
+     :foreground fixed-black :background erc-prompt-background)
+    (eshell-ls-archive :foreground eshell-ls-archive)
+    (eshell-ls-backup :foreground eshell-ls-backup)
+    (eshell-ls-clutter :foreground eshell-ls-clutter)
+    (eshell-ls-executable :foreground eshell-ls-executable)
+    (eshell-ls-missing :foreground contrast-red-1)
+    (eshell-ls-product :foreground eshell-ls-backup)
+    (eshell-ls-readonly :foreground eshell-ls-readonly)
+    (eshell-ls-special :foreground eshell-ls-special)
+    (eshell-ls-unreadable :foreground eshell-ls-unreadable)
+    (ibuffer-locked-buffer :foreground ibuffer-locked)
+    (log-view-file :background ((light . log-view-file-background)))
+    (log-view-message :background ((light . log-view-message-background)))
+    (nxml-glyph
+     :foreground fixed-black :background bg-fixed-light-gray)
+    (proced-cpu :foreground proced-resource)
+    (proced-emacs-pid :foreground proced-emacs-pid)
+    (proced-executable :foreground proced-executable)
+    (proced-interruptible-sleep-status-code
+     :foreground proced-interruptible-sleep)
+    (proced-mem :foreground proced-resource)
+    (proced-memory-high-usage :foreground proced-memory-high)
+    (proced-memory-low-usage :foreground proced-memory-low)
+    (proced-memory-medium-usage :foreground proced-memory-medium)
+    (proced-pgrp :foreground proced-pgrp)
+    (proced-pid :foreground proced-pid)
+    (proced-ppid :foreground proced-ppid)
+    (proced-run-status-code :foreground proced-run-status)
+    (proced-sess :foreground proced-sess)
+    (proced-session-leader-pid :foreground proced-pid)
+    (proced-time-colon :foreground proced-time-colon)
+    (proced-uninterruptible-sleep-status-code
+     :foreground contrast-red-1)
+    (rcirc-bright-nick :foreground rcirc-bright-nick)
+    (rcirc-my-nick :foreground rcirc-my-nick)
+    (rcirc-nick-in-message :foreground rcirc-nick-in-message)
+    (rcirc-other-nick :foreground rcirc-other-nick)
+    (rcirc-prompt :foreground rcirc-prompt)
+    (rcirc-server :foreground rcirc-server)
+    (rst-level-1 :background rst-level-1-background)
+    (rst-level-2 :background rst-level-2-background)
+    (rst-level-3 :background rst-level-3-background)
+    (rst-level-4 :background rst-level-4-background)
+    (rst-level-5 :background rst-level-5-background)
+    (rst-level-6 :background rst-level-6-background))
+  "Color mappings from the expanded Emacs 30 built-in audit.")
+
 (defconst chroma--true-color-display
   '((class color) (min-colors 16777216))
   "Face display condition supported by the initial release.")
@@ -449,6 +520,7 @@
           chroma-face-mappings-gnus
           chroma-face-mappings-merge
           chroma-face-mappings-applications
+          chroma-face-mappings-additional-built-ins
           (chroma-external-face-mappings)))
 
 (defun chroma-face-mapping (face)
@@ -478,13 +550,14 @@ attribute to the upstream proxy."
           (setq attributes (append attributes (list attribute color))))))
     attributes))
 
-(defun chroma-build-face-specs (&optional colors)
+(defun chroma-build-face-specs (&optional colors mappings)
   "Build theme face specs from semantic COLORS.
 
-COLORS defaults to `chroma-resolve-semantic-colors'.  Only faces that
-exist in the running Emacs are returned.  This avoids manufacturing
-newer-version faces on older Emacs releases; `chroma-theme-refresh'
-adds mappings for built-in faces that are defined later."
+COLORS defaults to `chroma-resolve-semantic-colors'.  MAPPINGS defaults
+to all Chroma mappings and may select an incremental subset.  Only faces
+that exist in the running Emacs are returned.  This avoids manufacturing
+newer-version faces on older Emacs releases; `chroma-theme-refresh' adds
+mappings for built-in faces that are defined later."
   (let ((resolved-colors (or colors (chroma-resolve-semantic-colors))))
     (delq nil
           (mapcar
@@ -508,7 +581,7 @@ adds mappings for built-in faces that are defined later."
                    (list face
                          (list
                           (list chroma--true-color-display attributes)))))))
-           (chroma-face-mappings)))))
+           (or mappings (chroma-face-mappings))))))
 
 (provide 'chroma-faces)
 

@@ -117,6 +117,18 @@
     ((isearch . :background) . primary)
     ((isearch . :foreground) . primary)
     ((org-dispatcher-highlight . :foreground) . primary)
+    ;; Expanded built-in coverage keeps current/emphasized state Primary,
+    ;; supporting/success state Secondary, and source-distinct levels intact.
+    ((highlight . :background) . primary)
+    ((secondary-selection . :background) . secondary)
+    ((show-paren-mismatch . :background) . primary)
+    ((eshell-ls-archive . :foreground) . secondary)
+    ((eshell-ls-executable . :foreground) . secondary)
+    ((eshell-ls-special . :foreground) . secondary)
+    ((proced-emacs-pid . :foreground) . primary)
+    ((proced-memory-low-usage . :foreground) . secondary)
+    ((proced-run-status-code . :foreground) . secondary)
+    ((proced-time-colon . :foreground) . secondary)
     ((whitespace-line . :foreground) . secondary))
   "Reviewed selector decisions for ambiguous upstream color observations.
 
@@ -127,16 +139,117 @@ also retains threshold-adjacent decisions so a small fitted-axis change does
 not silently change their meaning.  A mapping that later stops matching its
 reviewed selector returns to `needs-review'.")
 
-(defconst chroma-generate-audited-built-in-libraries
-  '(tab-bar tab-line hl-line display-line-numbers isearch replace
-    paren compile diff-mode ediff ansi-color cus-edit wid-edit ert org
-    pulse sh-script dired help-mode info calendar whitespace message
-    smerge-mode bookmark edmacro epa em-prompt eww shr speedbar tmm)
-  "Built-in libraries included in the development-time selector audit.")
+(defconst chroma-generate-reviewed-differing-selectors
+  '(((ansi-color-blue . :background) . primary)
+    ((ansi-color-blue . :foreground) . primary)
+    ((ansi-color-bright-blue . :background) . primary)
+    ((ansi-color-bright-blue . :foreground) . primary)
+    ((ansi-color-bright-cyan . :background) . primary)
+    ((ansi-color-bright-cyan . :foreground) . primary)
+    ((ansi-color-bright-yellow . :background) . secondary)
+    ((ansi-color-bright-yellow . :foreground) . secondary)
+    ((ansi-color-cyan . :background) . primary)
+    ((ansi-color-cyan . :foreground) . primary)
+    ((ansi-color-yellow . :background) . secondary)
+    ((ansi-color-yellow . :foreground) . secondary)
+    ((bookmark-face . :foreground) . secondary)
+    ((completions-common-part . :foreground) . primary)
+    ((cursor . :background) . primary)
+    ((custom-changed . :background) . primary)
+    ((custom-comment-tag . :foreground) . primary)
+    ((custom-group-tag-1 . :foreground) . secondary)
+    ((custom-group-tag . :foreground) . primary)
+    ((custom-invalid . :foreground) . secondary)
+    ((custom-modified . :background) . primary)
+    ((custom-rogue . :foreground) . secondary)
+    ((custom-set . :background) . primary)
+    ((custom-set . :foreground) . neutral)
+    ((custom-themed . :background) . primary)
+    ((custom-variable-obsolete . :foreground) . primary)
+    ((custom-variable-tag . :foreground) . primary)
+    ((diary . :foreground) . secondary)
+    ((diff-indicator-changed . :foreground) . secondary)
+    ((diff-refine-changed . :background) . secondary)
+    ((dired-broken-symlink . :foreground) . secondary)
+    ((ediff-current-diff-Ancestor . :background) . primary)
+    ((ediff-current-diff-C . :background) . secondary)
+    ((ediff-fine-diff-Ancestor . :background) . primary)
+    ((ediff-fine-diff-C . :background) . secondary)
+    ((edmacro-label . :foreground) . primary)
+    ((elisp-shorthand-font-lock-face . :foreground) . primary)
+    ((epa-field-body . :foreground) . primary)
+    ((epa-field-name . :foreground) . primary)
+    ((epa-string . :foreground) . primary)
+    ((erc-prompt-face . :background) . primary)
+    ((font-lock-builtin-face . :foreground) . primary)
+    ((font-lock-function-name-face . :foreground) . primary)
+    ((font-lock-keyword-face . :foreground) . primary)
+    ((font-lock-string-face . :foreground) . secondary)
+    ((font-lock-variable-name-face . :foreground) . secondary)
+    ((gnus-summary-normal-ancient . :foreground) . primary)
+    ((help-key-binding . :foreground) . primary)
+    ((holiday . :background) . secondary)
+    ((isearch-group-2 . :background) . secondary)
+    ((isearch-group-2 . :foreground) . secondary)
+    ((link . :foreground) . primary)
+    ((message-cited-text-2 . :foreground) . secondary)
+    ((message-cited-text-4 . :foreground) . secondary)
+    ((message-header-name . :foreground) . primary)
+    ((message-header-subject . :foreground) . primary)
+    ((minibuffer-prompt . :foreground) . primary)
+    ((org-agenda-structure . :foreground) . primary)
+    ((org-date . :foreground) . primary)
+    ((org-dispatcher-highlight . :background) . primary)
+    ((org-document-info . :foreground) . primary)
+    ((org-document-title . :foreground) . primary)
+    ((org-ellipsis . :foreground) . secondary)
+    ((org-footnote . :foreground) . primary)
+    ((org-headline-done . :foreground) . secondary)
+    ((org-latex-and-related . :foreground) . secondary)
+    ((org-sexp-date . :foreground) . primary)
+    ((org-time-grid . :foreground) . secondary)
+    ((proced-executable . :foreground) . primary)
+    ((proced-memory-medium-usage . :foreground) . secondary)
+    ((proced-pgrp . :foreground) . primary)
+    ((proced-pid . :foreground) . primary)
+    ((proced-ppid . :foreground) . primary)
+    ((proced-sess . :foreground) . primary)
+    ((proced-session-leader-pid . :foreground) . primary)
+    ((rcirc-my-nick . :foreground) . primary)
+    ((rcirc-nick-in-message . :foreground) . primary)
+    ((rcirc-other-nick . :foreground) . secondary)
+    ((rcirc-prompt . :foreground) . primary)
+    ((rcirc-server . :foreground) . secondary)
+    ((sh-heredoc . :foreground) . secondary)
+    ((shr-mark . :background) . secondary)
+    ((smerge-base . :background) . secondary)
+    ((speedbar-directory-face . :foreground) . primary)
+    ((speedbar-file-face . :foreground) . primary)
+    ((speedbar-separator-face . :background) . primary)
+    ((speedbar-tag-face . :foreground) . secondary)
+    ((tooltip . :background) . neutral)
+    ((tty-menu-disabled-face . :background) . primary)
+    ((tty-menu-enabled-face . :background) . primary)
+    ((tty-menu-enabled-face . :foreground) . secondary)
+    ((tty-menu-selected-face . :background) . secondary)
+    ((warning . :foreground) . secondary)
+    ((whitespace-empty . :background) . secondary)
+    ((whitespace-hspace . :background) . secondary)
+    ((whitespace-indentation . :background) . secondary)
+    ((whitespace-missing-newline-at-eof . :background) . secondary)
+    ((whitespace-space-after-tab . :background) . secondary)
+    ((whitespace-space-before-tab . :background) . secondary)
+    ((whitespace-space . :background) . secondary)
+    ((whitespace-tab . :background) . secondary)
+    ((whitespace-trailing . :foreground) . secondary))
+  "Reviewed semantic selectors that intentionally differ from source hue.
+
+Every confident difference is listed so a new Primary/Secondary/Neutral
+divergence is a failing audit rather than another line in a noisy report.")
 
 (defun chroma-generate-load-audited-built-ins ()
   "Load the built-in libraries included in Chroma's selector audit."
-  (dolist (library chroma-generate-audited-built-in-libraries)
+  (dolist (library chroma-audited-built-in-libraries)
     (require library nil t)))
 
 (defun chroma-generate--hex-channel (color offset)
@@ -664,7 +777,9 @@ coordinates under Chroma's true-color display model."
         (cl-letf (((symbol-function 'display-color-cells)
                    (lambda (&optional _frame) 16777216))
                   ((symbol-function 'window-system)
-                   (lambda (&optional _frame) 'pgtk)))
+                   (lambda (&optional _frame) 'pgtk))
+                  ((symbol-function 'display-supports-face-attributes-p)
+                   (lambda (_attributes &optional _frame) t)))
           (dolist (face selected-faces)
             (when (and (facep face) (get face 'face-defface-spec))
               (dolist (variant chroma-supported-variants)
@@ -813,6 +928,12 @@ as low-confidence review cases rather than silently changing selector."
              chroma-generate-reviewed-low-confidence-selectors
              nil nil #'equal))
 
+(defun chroma-generate--reviewed-difference-selector (face attribute)
+  "Return the approved differing selector for FACE and ATTRIBUTE."
+  (alist-get (cons face attribute)
+             chroma-generate-reviewed-differing-selectors
+             nil nil #'equal))
+
 (defun chroma-generate-audit-mappings (&optional mappings)
   "Audit reviewed face MAPPINGS against upstream color tendencies.
 
@@ -821,8 +942,8 @@ colored mapped attribute under `:entries'.  An entry is `accepted' when its
 reviewed static selector agrees with the automatic classification,
 `reviewed' when an ambiguous source vote has an explicit matching decision,
 `needs-review' when an ambiguous result is new or no longer matches that
-decision, and `differs' when the reviewed semantic choice intentionally
-differs from a confident color tendency."
+decision, `reviewed-difference' when a confident semantic divergence is
+explicitly approved, and `differs' when a confident divergence is new."
   (let* ((selected-mappings (or mappings (chroma-face-mappings)))
          (faces (delete-dups (mapcar #'car selected-mappings)))
          (observations (chroma-generate-source-observations faces))
@@ -842,6 +963,9 @@ differs from a confident color tendency."
               (plist-get classification :status))
              (reviewed-selector
               (chroma-generate--reviewed-selector face attribute))
+             (reviewed-difference-selector
+              (chroma-generate--reviewed-difference-selector
+               face attribute))
              (status
               (cond
                ((eq classification-status 'needs-review)
@@ -850,6 +974,9 @@ differs from a confident color tendency."
                     'reviewed
                   'needs-review))
                ((memq automatic-selector mapped-selectors) 'accepted)
+               ((and reviewed-difference-selector
+                     (memq reviewed-difference-selector mapped-selectors))
+                'reviewed-difference)
                (t 'differs))))
         (push (append
                (list :status status :mapped-selectors mapped-selectors)
@@ -927,7 +1054,8 @@ finite face plan."
     (princ (format "Primary source axis: %.2f degrees\n" axis))
     (princ (format "Summary: %S\n" summary))
     (dolist (entry (plist-get audit :entries))
-      (unless (memq (plist-get entry :status) '(accepted reviewed))
+      (unless (memq (plist-get entry :status)
+                    '(accepted reviewed reviewed-difference))
         (princ
          (format "%s %s/%s auto=%s mapped=%S confidence=%.3f source=%s\n"
                  (upcase (symbol-name (plist-get entry :status)))
